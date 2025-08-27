@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"runtime"
 	"sync"
+	"syscall"
 
 	"golang.design/x/hotkey"
 	"golang.design/x/hotkey/mainthread"
@@ -20,23 +24,41 @@ var runState = struct {
 
 func main() { mainthread.Init(fn) }
 func fn() {
-	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyC)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Captura sinais do sistema (como Ctrl+C)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigs
+		log.Println("Encerrando...")
+		cancel()
+	}()
+
+	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyH)
 	err := hk.Register()
 	if err != nil {
 		log.Fatalf("hotkey: Failed to register hotkey: %v", err)
 		return
 	}
+
 	log.Printf("hotkey: %v is registered\n", hk)
-	log.Printf("hotkey: %v is testeeee\n", hk)
-	<-hk.Keydown()
-	log.Printf("hotkey: %v is down\n", hk)
-	executeTerminal()
+	defer hk.Unregister()
 
-	<-hk.Keyup()
-	log.Printf("hotkey: %v is up\n", hk)
-	hk.Unregister()
-	log.Printf("hotkey: %v is unregistered\n", hk)
-
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-hk.Keydown():
+			log.Printf("hotkey: %v is down\n", hk)
+			executeTerminal()
+		case <-hk.Keyup():
+			log.Printf("hotkey: %v is up\n", hk)
+		}
+	}
 }
 
 var clientCmd *exec.Cmd
@@ -71,12 +93,16 @@ func runClient(command string) {
 func executeTerminal() error {
 	exePath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("Erro ao achar executavel. Erro: %v", err)
+		return fmt.Errorf("erro ao achar executavel. Erro: %v", err)
 	}
+	osName := runtime.GOOS
 	clientBinaryName := "client"
+	if osName == "windows" {
+		clientBinaryName = clientBinaryName + ".exe"
+	}
 	clientBinaryPath := filepath.Join(filepath.Dir(exePath), clientBinaryName)
 	log.Printf("Tentando executar o binário em %v", clientBinaryPath)
-
+	fmt.Println("ClientBinary = ", clientBinaryPath)
 	if _, err := os.Stat(clientBinaryPath); err == nil {
 		runClient(clientBinaryPath)
 	} else {
