@@ -7,14 +7,13 @@ import (
 	"github.com/gustavo-silva98/adnotes/internal/clientui/keys"
 )
 
-
 type Model struct {
-	Textarea textarea.Model
-	Help help.Model
-	Keys keys.KeyMap
+	Textarea   textarea.Model
+	Help       help.Model
+	Keys       keys.KeyMap
 	InputStyle lipgloss.Style
-	Err error
-	Quitting bool
+	Err        error
+	Quitting   bool
 }
 
 func New() Model {
@@ -23,9 +22,9 @@ func New() Model {
 	ti.Focus()
 
 	return Model{
-		Textarea: ti,
-		Help: New().Help,
-		Keys: keys.Default,
+		Textarea:   ti,
+		Help:       help.New(),
+		Keys:       keys.Default,
 		InputStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#FF75B7")),
 	}
 }
