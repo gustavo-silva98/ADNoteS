@@ -1,6 +1,10 @@
 package update
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/file"
@@ -15,7 +19,22 @@ func Update(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.Keys.Save):
-			file.WriteTxt(m.Textarea.Value())
+			noteExample := file.Note{
+				Hour:         0,
+				Note:         m.Textarea.Value(),
+				Reminder:     0,
+				PlusReminder: 0,
+			}
+
+			ctx := context.Background()
+			sql, _ := file.InitDB("banco.db", ctx)
+
+			id, err := sql.InsertNote(&noteExample, ctx)
+			if err != nil {
+				file.WriteTxt(err.Error())
+			}
+			fmt.Println("ID É ", id)
+			time.Sleep(5 * time.Second)
 			m.Quitting = true
 			return m, tea.Quit
 
