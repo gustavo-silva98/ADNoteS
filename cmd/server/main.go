@@ -24,8 +24,8 @@ var runState = struct {
 
 func main() { mainthread.Init(fn) }
 func fn() {
-
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Captura sinais do sistema (como Ctrl+C)

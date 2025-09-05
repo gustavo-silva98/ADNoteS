@@ -7,8 +7,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gustavo-silva98/adnotes/internal/clientui/file"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
+	"github.com/gustavo-silva98/adnotes/internal/repository/file"
 )
 
 func Update(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
