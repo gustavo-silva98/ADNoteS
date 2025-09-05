@@ -22,7 +22,7 @@ type SqliteHandler struct {
 
 type Note struct {
 	Hour         int
-	Note         string
+	NoteText     string
 	Reminder     int
 	PlusReminder int
 }
@@ -58,12 +58,11 @@ func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
 }
 
 func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
-	defer s.db.Close()
 
 	res, err := s.db.ExecContext(
 		ctx,
 		`INSERT INTO notas (hour, note, reminder, plusreminder) VALUES (?, ?, ?, ?)`,
-		n.Hour, n.Note, n.Reminder, n.PlusReminder,
+		n.Hour, n.NoteText, n.Reminder, n.PlusReminder,
 	)
 	if err != nil {
 		return 0, err
@@ -73,6 +72,31 @@ func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return id, nil
+}
+
+func (s SqliteHandler) QueryNote(firstId int, lastId int, ctx context.Context) (map[int]Note, error) {
+	rows, err := s.db.QueryContext(
+		ctx,
+		`SELECT * FROM notas WHERE id BETWEEN (?) AND (?)`,
+		firstId, lastId,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var queryMap = map[int]Note{}
+	for rows.Next() {
+		var note NoteRow
+		err := rows.Scan(&note.ID, &note.Hour, &note.NoteText, &note.Reminder, &note.PlusReminder)
+		if err != nil {
+			return nil, err
+		}
+		queryMap[note.ID] = note.Note
+
+	}
+
+	return queryMap, nil
+
 }
 
 func WriteTxt(msg string) {
@@ -89,4 +113,23 @@ func WriteTxt(msg string) {
 	}
 
 	log.Println("Arquivo escrito com sucesso")
+}
+
+func (s SqliteHandler) GetFirsIndexPage(ctx context.Context) (int, error) {
+	row, err := s.db.QueryContext(
+		ctx,
+		`SELECT COUNT(*) FROM (?)`, s.TableName,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+	defer row.Close()
+	var count int
+	for row.Next() {
+		if err := row.Scan(&count); err != nil {
+			return 0, nil
+		}
+	}
+	return count, nil
 }
