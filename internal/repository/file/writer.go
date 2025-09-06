@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 
@@ -10,8 +11,8 @@ import (
 )
 
 type Writer interface {
-	InsertNote(noteData string)
-	InitDB(DbPath string) error
+	InsertNote(n *Note, ctx context.Context) (int64, error)
+	QueryNote(firstId int, lastId int, ctx context.Context) (map[int]Note, error)
 }
 
 type SqliteHandler struct {
@@ -74,11 +75,11 @@ func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
 	return id, nil
 }
 
-func (s SqliteHandler) QueryNote(firstId int, lastId int, ctx context.Context) (map[int]Note, error) {
+func (s SqliteHandler) QueryNote(minorId int, majorId int, ctx context.Context) (map[int]Note, error) {
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT * FROM notas WHERE id BETWEEN (?) AND (?)`,
-		firstId, lastId,
+		`SELECT * FROM notas WHERE id BETWEEN ? AND ? ORDER BY id ASC`,
+		minorId, majorId,
 	)
 	if err != nil {
 		return nil, err
@@ -92,7 +93,6 @@ func (s SqliteHandler) QueryNote(firstId int, lastId int, ctx context.Context) (
 			return nil, err
 		}
 		queryMap[note.ID] = note.Note
-
 	}
 
 	return queryMap, nil
@@ -118,7 +118,7 @@ func WriteTxt(msg string) {
 func (s SqliteHandler) GetFirsIndexPage(ctx context.Context) (int, error) {
 	row, err := s.db.QueryContext(
 		ctx,
-		`SELECT COUNT(*) FROM (?)`, s.TableName,
+		fmt.Sprintf(`SELECT COUNT(*) FROM %v`, s.TableName),
 	)
 
 	if err != nil {
@@ -130,6 +130,9 @@ func (s SqliteHandler) GetFirsIndexPage(ctx context.Context) (int, error) {
 		if err := row.Scan(&count); err != nil {
 			return 0, nil
 		}
+	}
+	if count < 10 {
+		return 10, nil
 	}
 	return count, nil
 }

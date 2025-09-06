@@ -1,3 +1,0 @@
-
-sql: database is closed
-sql: database is closed
