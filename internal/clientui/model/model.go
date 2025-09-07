@@ -33,6 +33,7 @@ type Model struct {
 	TotalItemsNote int
 	ListModel      list.Model
 	ItemList       []list.Item
+	CurrentPage    int
 }
 
 func New() Model {
@@ -56,5 +57,6 @@ func New() Model {
 		TotalItemsNote: firstIndex,
 		Context:        ctx,
 		DB:             sql,
+		CurrentPage:    1,
 	}
 }

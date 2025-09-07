@@ -12,7 +12,7 @@ import (
 
 type Writer interface {
 	InsertNote(n *Note, ctx context.Context) (int64, error)
-	QueryNote(firstId int, lastId int, ctx context.Context) (map[int]Note, error)
+	QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error)
 }
 
 type SqliteHandler struct {
@@ -75,11 +75,11 @@ func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
 	return id, nil
 }
 
-func (s SqliteHandler) QueryNote(minorId int, majorId int, ctx context.Context) (map[int]Note, error) {
+func (s SqliteHandler) QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error) {
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT * FROM notas WHERE id BETWEEN ? AND ? ORDER BY id ASC`,
-		minorId, majorId,
+		`SELECT * FROM notas ORDER BY id DESC LIMIT ? OFFSET ?`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, err

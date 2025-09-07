@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -11,6 +12,8 @@ import (
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
 	"github.com/gustavo-silva98/adnotes/internal/repository/file"
 )
+
+const PageSize = 50
 
 func Update(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 	if msg, ok := msg.(tea.KeyMsg); ok {
@@ -99,19 +102,29 @@ func (i noteItem) Description() string { return i.desc }
 func (i noteItem) FilterValue() string { return i.title }
 
 func queryMapNotes(m model.Model) []list.Item {
-	mapQuery, err := m.DB.QueryNote(m.IndexQuery-9, m.IndexQuery, m.Context)
+	mapQuery, err := m.DB.QueryNote(PageSize, (m.CurrentPage-1)*PageSize, m.Context)
 	if err != nil {
 		file.WriteTxt(err.Error())
 	}
 	m.MapNotes = mapQuery
-	var items []list.Item
-	for i := m.IndexQuery; i >= m.IndexQuery-9; i-- {
-		if note, ok := m.MapNotes[i]; ok {
-			items = append(items, noteItem{
-				title: fmt.Sprintf("Note %d", i),
-				desc:  note.NoteText,
-			})
+
+	var ids []int
+	for id := range m.MapNotes {
+		ids = append(ids, id)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(ids)))
+
+	items := make([]list.Item, 0, len(mapQuery))
+	for _, id := range ids {
+		note := m.MapNotes[id]
+		desc := note.NoteText
+		if len(desc) > 5 {
+			desc = desc[:5]
 		}
+		items = append(items, noteItem{
+			title: fmt.Sprintf("Note %d", id),
+			desc:  desc,
+		})
 	}
 	return items
 }
@@ -135,11 +148,6 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.Keys.Back):
-			m.IndexQuery = m.IndexQuery + 10
-			if m.IndexQuery > m.TotalItemsNote {
-				m.IndexQuery = m.TotalItemsNote
-			}
 		case key.Matches(msg, m.Keys.Quit):
 			m.Quitting = true
 			return m, tea.Quit
@@ -147,6 +155,6 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 			m.State = model.InsertNoteState
 		}
 	}
-
+	//m.ListModel, cmd = m.ListModel.Update(msg)
 	return m, tea.Batch(cmds...)
 }
