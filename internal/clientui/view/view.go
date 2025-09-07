@@ -37,10 +37,22 @@ func renderLogo() string {
 }
 
 func View(m model.Model) string {
+	var output string
 	if m.Quitting {
 		return "Bye!\n"
 	}
 
+	switch m.State {
+	case model.InsertNoteState:
+		output = InsertNoteView(m)
+	case model.ReadNotesState:
+		output = m.ListModel.View()
+	}
+
+	return output
+}
+
+func InsertNoteView(m model.Model) string {
 	termWid, termHeight, err := term.GetSize(os.Stdout.Fd())
 	if err != nil {
 		return ""
