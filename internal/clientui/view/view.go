@@ -9,6 +9,8 @@ import (
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
 )
 
+var termWid, termHeight, _ = term.GetSize(os.Stdout.Fd())
+
 var logoLines = []string{
 	" _____     _         _____     _       ",
 	"|  _  |_ _| |___ ___|   | |___| |_ ___ ",
@@ -19,8 +21,8 @@ var logoLines = []string{
 
 var gradientColors = []string{
 	"#6d40f3ff", // roxo profundo
-	"#8E5AF7",   // lilás mais vivo
-	"#A05EFA",   // lavanda
+	"#7e40faff", // lilás mais vivo
+	"#8b3bfcff", // lavanda
 	"#BC78FE",   // rosa arroxeado (nova cor)
 	"#B262FD",   // violeta claro
 }
@@ -46,7 +48,10 @@ func View(m model.Model) string {
 	case model.InsertNoteState:
 		output = InsertNoteView(m)
 	case model.ReadNotesState:
-		output = m.ListModel.View()
+
+		output = lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+	case model.EditNoteSate:
+		output = lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
 	}
 
 	return output
@@ -66,7 +71,7 @@ func InsertNoteView(m model.Model) string {
 
 	var textStyle = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#6d40f3ff")).
+		BorderForeground(lipgloss.Color("#7e40fa")).
 		Padding(1, 1).
 		PaddingBottom(3).
 		Width(termWid * 9 / 10)
@@ -98,4 +103,24 @@ func InsertNoteView(m model.Model) string {
 	)
 
 	return output
+}
+
+func EditNoteView(m model.Model) string {
+	var textStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7e40faff")).
+		MarginLeft(8).
+		Width((termWid / 2)).
+		Height(((termHeight / 10) * 8))
+
+	//output := lipgloss.PlaceHorizontal((termWid / 2), lipgloss.Right, textStyle.Render(m.TextareaEdit.View()))
+	return textStyle.Render(m.TextareaEdit.View())
+
+}
+
+func ListModelView(m model.Model) string {
+	var listModelStyle = lipgloss.NewStyle().
+		PaddingTop(1)
+
+	return listModelStyle.Render(m.ListModel.View())
 }

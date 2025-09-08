@@ -14,6 +14,7 @@ type KeyMap struct {
 	Back       key.Binding
 	PageBack   key.Binding
 	PageFoward key.Binding
+	Enter      key.Binding
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
@@ -37,4 +38,5 @@ var Default = KeyMap{
 	Back:       key.NewBinding(key.WithKeys("left"), key.WithHelp("left", "Get back")),
 	PageBack:   key.NewBinding(key.WithKeys("alt+left"), key.WithHelp("alt+left", "Page Back")),
 	PageFoward: key.NewBinding(key.WithKeys("alt+right"), key.WithHelp("alt+right", "Page Foward")),
+	Enter:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Enter Note")),
 }

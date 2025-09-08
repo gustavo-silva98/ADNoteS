@@ -3,15 +3,21 @@ package update
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/term"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
 	"github.com/gustavo-silva98/adnotes/internal/repository/file"
+	"github.com/muesli/reflow/wordwrap"
 )
+
+var termWidth, termHeight, _ = term.GetSize(os.Stdout.Fd())
 
 const PageSize = 50
 
@@ -38,6 +44,8 @@ func Update(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 		return updateInsertNoteState(msg, m)
 	case model.ReadNotesState:
 		return updateReadNoteState(msg, m)
+	case model.EditNoteSate:
+		return updateEditNoteFunc(msg, m)
 	}
 	return m, nil
 }
@@ -95,11 +103,13 @@ func updateInsertNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 
 type noteItem struct {
 	title, desc string
+	Id          int
 }
 
 func (i noteItem) Title() string       { return i.title }
 func (i noteItem) Description() string { return i.desc }
 func (i noteItem) FilterValue() string { return i.title }
+func (i noteItem) IdValue() int        { return i.Id }
 
 func queryMapNotes(m model.Model) []list.Item {
 	mapQuery, err := m.DB.QueryNote(PageSize, (m.CurrentPage-1)*PageSize, m.Context)
@@ -118,12 +128,10 @@ func queryMapNotes(m model.Model) []list.Item {
 	for _, id := range ids {
 		note := m.MapNotes[id]
 		desc := note.NoteText
-		if len(desc) > 5 {
-			desc = desc[:5]
-		}
 		items = append(items, noteItem{
 			title: fmt.Sprintf("Note %d", id),
 			desc:  desc,
+			Id:    id,
 		})
 	}
 	return items
@@ -135,15 +143,35 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 	// Só recarregue a lista se ItemList estiver vazia (primeira vez) ou se mudar de página
 	if len(m.ItemList) == 0 {
 		m.ItemList = queryMapNotes(m)
-		l := list.New(m.ItemList, list.NewDefaultDelegate(), 50, 30)
+		d := list.NewDefaultDelegate()
+		c := lipgloss.Color("#DF21FF")
+		c1 := lipgloss.Color("#7e40fa")
+		d.Styles.SelectedTitle = d.Styles.SelectedTitle.Foreground(c).BorderLeftForeground(c).Bold(true)
+		d.Styles.NormalTitle = d.Styles.NormalTitle.Foreground(lipgloss.Color("#9a6bf8ff")).Faint(true)
+		d.Styles.SelectedDesc = d.Styles.SelectedDesc.Foreground(c1).BorderLeftForeground(c)
+		d.Styles.NormalDesc = d.Styles.NormalDesc.Foreground(lipgloss.Color("#f2c9faff")).Faint(true)
+
+		l := list.New(m.ItemList, d, termWidth/2, (termHeight/10)*9)
+		l.Styles.Title = l.Styles.Title.Background(lipgloss.Color("#9D2EB0")).Foreground(lipgloss.Color("#E0D9F6"))
 		l.Title = "Notas"
+
 		m.ListModel = l
 	}
 
-	// Sempre atualize a navegação da lista
 	var cmd tea.Cmd
 	m.ListModel, cmd = m.ListModel.Update(msg)
 	cmds = append(cmds, cmd)
+
+	selected := m.ListModel.SelectedItem()
+	if selected != nil {
+		if note, ok := selected.(noteItem); ok {
+			wrapped := wordwrap.String(fmt.Sprintf("%v", note.desc), m.TextareaEdit.Width())
+			// Só atualize o valor se for diferente do atual
+			if m.TextareaEdit.Value() != wrapped {
+				m.TextareaEdit.SetValue(wrapped)
+			}
+		}
+	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -153,8 +181,36 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 			return m, tea.Quit
 		case key.Matches(msg, m.Keys.PageBack):
 			m.State = model.InsertNoteState
+		case key.Matches(msg, m.Keys.Enter):
+			// Ao entrar no modo de edição, inicialize e foque o TextareaEdit
+			m.State = model.EditNoteSate
+			if !m.TextareaEdit.Focused() {
+				cmd = m.TextareaEdit.Focus()
+				cmds = append(cmds, cmd)
+			}
 		}
 	}
-	//m.ListModel, cmd = m.ListModel.Update(msg)
+	return m, tea.Batch(cmds...)
+}
+
+func updateEditNoteFunc(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	// Atualize o TextareaEdit com o evento recebido
+	var cmd tea.Cmd
+	m.TextareaEdit, cmd = m.TextareaEdit.Update(msg)
+	cmds = append(cmds, cmd)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.Keys.Save):
+			m.State = model.ReadNotesState
+			if m.TextareaEdit.Focused() {
+				m.TextareaEdit.Blur()
+			}
+		}
+	}
+
 	return m, tea.Batch(cmds...)
 }
