@@ -22,22 +22,23 @@ var termWidth, termHeight, _ = term.GetSize(os.Stdout.Fd())
 const PageSize = 50
 
 func Update(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
-	if msg, ok := msg.(tea.KeyMsg); ok {
-		k := msg.String()
-		if k == "q" {
-			m.Quitting = true
-			return m, tea.Quit
+	/*
+		if msg, ok := msg.(tea.KeyMsg); ok {
+			k := msg.String()
+			if k == "q" {
+				m.Quitting = true
+				return m, tea.Quit
+			}
 		}
-	}
-
+	*/
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.Keys.Read):
 			m.State = model.ReadNotesState
-			fmt.Println("STATE É ", m.State)
 		}
 	}
+	m.HelpKeys = helpMaker(m)
 
 	switch m.State {
 	case model.InsertNoteState:
@@ -144,7 +145,7 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 	if len(m.ItemList) == 0 {
 		m.ItemList = queryMapNotes(m)
 		d := list.NewDefaultDelegate()
-		c := lipgloss.Color("#DF21FF")
+		c := lipgloss.Color("#FE02FF")
 		c1 := lipgloss.Color("#7e40fa")
 		d.Styles.SelectedTitle = d.Styles.SelectedTitle.Foreground(c).BorderLeftForeground(c).Bold(true)
 		d.Styles.NormalTitle = d.Styles.NormalTitle.Foreground(lipgloss.Color("#9a6bf8ff")).Faint(true)
@@ -154,6 +155,7 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 		l := list.New(m.ItemList, d, termWidth/2, (termHeight/10)*9)
 		l.Styles.Title = l.Styles.Title.Background(lipgloss.Color("#9D2EB0")).Foreground(lipgloss.Color("#E0D9F6"))
 		l.Title = "Notas"
+		l.SetShowHelp(false)
 
 		m.ListModel = l
 	}
@@ -198,13 +200,14 @@ func updateEditNoteFunc(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 
 	// Atualize o TextareaEdit com o evento recebido
 	var cmd tea.Cmd
+
 	m.TextareaEdit, cmd = m.TextareaEdit.Update(msg)
 	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.Keys.Save):
+		case key.Matches(msg, m.Keys.Quit):
 			m.State = model.ReadNotesState
 			if m.TextareaEdit.Focused() {
 				m.TextareaEdit.Blur()
@@ -213,4 +216,34 @@ func updateEditNoteFunc(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func helpMaker(m model.Model) []key.Binding {
+	// helper pra formatar tecla+descrição
+	b := func(keys, helpText string) key.Binding {
+		return key.NewBinding(
+			key.WithKeys(keys),
+			key.WithHelp(keys, helpText),
+		)
+	}
+
+	switch m.State {
+	case model.InsertNoteState:
+		return []key.Binding{
+			b("Ctrl+s", "Save and Quit"),
+			b("Ctrl+r", "Read Notes"),
+			b("q", "Quit"),
+		}
+	case model.ReadNotesState:
+		return []key.Binding{
+			b("Enter", "Edit Note"),
+			b("q", "Quit"),
+		}
+	case model.EditNoteSate:
+		return []key.Binding{
+			b("Enter", "Save Note"),
+			b("q", "Quit Editing"),
+		}
+	}
+	return []key.Binding{}
 }

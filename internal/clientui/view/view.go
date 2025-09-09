@@ -43,15 +43,23 @@ func View(m model.Model) string {
 	if m.Quitting {
 		return "Bye!\n"
 	}
+	helpview := m.Help.ShortHelpView(m.HelpKeys)
+
+	var helpStyle = lipgloss.NewStyle().
+		AlignVertical(lipgloss.Bottom).
+		AlignHorizontal(lipgloss.Center).
+		MarginBottom(1)
 
 	switch m.State {
 	case model.InsertNoteState:
 		output = InsertNoteView(m)
 	case model.ReadNotesState:
 
-		output = lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview))
 	case model.EditNoteSate:
-		output = lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview))
 	}
 
 	return output
@@ -110,8 +118,10 @@ func EditNoteView(m model.Model) string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#7e40faff")).
 		MarginLeft(8).
+		MarginTop(1).
 		Width((termWid / 2)).
-		Height(((termHeight / 10) * 8))
+		Height(int(float64(termHeight) / 10 * 7.5)).
+		AlignVertical(lipgloss.Center)
 
 	//output := lipgloss.PlaceHorizontal((termWid / 2), lipgloss.Right, textStyle.Render(m.TextareaEdit.View()))
 	return textStyle.Render(m.TextareaEdit.View())
@@ -120,7 +130,8 @@ func EditNoteView(m model.Model) string {
 
 func ListModelView(m model.Model) string {
 	var listModelStyle = lipgloss.NewStyle().
-		PaddingTop(1)
+		PaddingTop(1).
+		Width(int(float64(termWid) / 2.5))
 
 	return listModelStyle.Render(m.ListModel.View())
 }

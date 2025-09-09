@@ -43,6 +43,7 @@ type Model struct {
 	ViewpoerContent string
 	Ready           bool
 	TextareaEdit    textarea.Model
+	HelpKeys        []key.Binding
 }
 
 func NewTextAreaEdit() textarea.Model {
@@ -72,7 +73,7 @@ func NewTextAreaEdit() textarea.Model {
 
 	t := textarea.New()
 	t.SetWidth((termWidth / 100) * 57)
-	t.SetHeight((termHeight / 10) * 8)
+	t.SetHeight(int(float64(termHeight) / 10 * 7.5))
 	t.BlurredStyle.Base.MarginBottom(5)
 	t.ShowLineNumbers = true
 	t.Cursor.Style = cursorStyle
