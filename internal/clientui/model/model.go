@@ -44,6 +44,7 @@ type Model struct {
 	Ready           bool
 	TextareaEdit    textarea.Model
 	HelpKeys        []key.Binding
+	SelectedNote    list.Item
 }
 
 func NewTextAreaEdit() textarea.Model {

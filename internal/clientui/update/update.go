@@ -18,6 +18,7 @@ import (
 )
 
 var termWidth, termHeight, _ = term.GetSize(os.Stdout.Fd())
+var ctx = context.Background()
 
 const PageSize = 50
 
@@ -66,7 +67,6 @@ func updateInsertNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 				PlusReminder: 0,
 			}
 
-			ctx := context.Background()
 			sql, _ := file.InitDB("banco.db", ctx)
 
 			_, err := sql.InsertNote(&noteExample, ctx)
@@ -103,8 +103,11 @@ func updateInsertNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 }
 
 type noteItem struct {
-	title, desc string
-	Id          int
+	title, desc  string
+	Id           int
+	Hour         int
+	Reminder     int
+	PlusReminder int
 }
 
 func (i noteItem) Title() string       { return i.title }
@@ -130,9 +133,12 @@ func queryMapNotes(m model.Model) []list.Item {
 		note := m.MapNotes[id]
 		desc := note.NoteText
 		items = append(items, noteItem{
-			title: fmt.Sprintf("Note %d", id),
-			desc:  desc,
-			Id:    id,
+			title:        fmt.Sprintf("Note %d", id),
+			desc:         desc,
+			Id:           id,
+			Hour:         0,
+			Reminder:     0,
+			PlusReminder: 0,
 		})
 	}
 	return items
@@ -212,9 +218,31 @@ func updateEditNoteFunc(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 			if m.TextareaEdit.Focused() {
 				m.TextareaEdit.Blur()
 			}
-		}
-	}
 
+		case key.Matches(msg, m.Keys.Save):
+			if selected := m.ListModel.SelectedItem(); selected != nil {
+				if note, ok := selected.(noteItem); ok {
+					noteInput := file.Note{
+						ID:           note.Id,
+						Hour:         note.Hour,
+						NoteText:     m.TextareaEdit.Value(),
+						Reminder:     note.Reminder,
+						PlusReminder: note.PlusReminder,
+					}
+					rowsUpdated, err := m.DB.UpdateEditNoteRepository(ctx, noteInput)
+					if err != nil {
+						fmt.Println(err)
+					}
+					if rowsUpdated == 1 {
+						fmt.Println("Edição da Nota salva.")
+						m.ItemList = nil
+					}
+				}
+
+			}
+		}
+		//	val, ok := m.MapNotes[m.ListModel.SelectedItem()]
+	}
 	return m, tea.Batch(cmds...)
 }
 

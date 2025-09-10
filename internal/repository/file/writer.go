@@ -13,6 +13,7 @@ import (
 type Writer interface {
 	InsertNote(n *Note, ctx context.Context) (int64, error)
 	QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error)
+	UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error)
 }
 
 type SqliteHandler struct {
@@ -22,15 +23,11 @@ type SqliteHandler struct {
 }
 
 type Note struct {
+	ID           int
 	Hour         int
 	NoteText     string
 	Reminder     int
 	PlusReminder int
-}
-
-type NoteRow struct {
-	ID int
-	Note
 }
 
 func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
@@ -87,12 +84,12 @@ func (s SqliteHandler) QueryNote(limit int, offset int, ctx context.Context) (ma
 	defer rows.Close()
 	var queryMap = map[int]Note{}
 	for rows.Next() {
-		var note NoteRow
+		var note Note
 		err := rows.Scan(&note.ID, &note.Hour, &note.NoteText, &note.Reminder, &note.PlusReminder)
 		if err != nil {
 			return nil, err
 		}
-		queryMap[note.ID] = note.Note
+		queryMap[note.ID] = note
 	}
 
 	return queryMap, nil
@@ -135,4 +132,23 @@ func (s SqliteHandler) GetFirsIndexPage(ctx context.Context) (int, error) {
 		return 10, nil
 	}
 	return count, nil
+}
+
+func (s SqliteHandler) UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error) {
+	row, err := s.db.ExecContext(
+		ctx,
+		`UPDATE notas
+		SET hour = ?, note = ?, reminder = ?, plusreminder = ?
+		WHERE id = ?`,
+		note.Hour, note.NoteText, note.Reminder, note.PlusReminder, note.ID)
+	if err != nil {
+		return 0, err
+	}
+	ra, err := row.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return ra, nil
+
 }
