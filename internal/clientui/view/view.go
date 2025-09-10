@@ -3,6 +3,7 @@ package view
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/term"
@@ -54,12 +55,17 @@ func View(m model.Model) string {
 	case model.InsertNoteState:
 		output = InsertNoteView(m)
 	case model.ReadNotesState:
-
 		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
 		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview))
 	case model.EditNoteSate:
 		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
 		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview))
+	case model.ConfirmEditSate:
+		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + YesNoModalOverlay("Do you want to save changes?")
+	case model.ResultEditState:
+		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + ResultEditModalOverlay(m.ResultMessage)
 	}
 
 	return output
@@ -134,4 +140,95 @@ func ListModelView(m model.Model) string {
 		Width(int(float64(termWid) / 2.5))
 
 	return listModelStyle.Render(m.ListModel.View())
+}
+
+func YesNoModalOverlay(question string) string {
+	overlay := lipgloss.NewStyle().
+		Width(termWid).
+		Height(termHeight).
+		Background(lipgloss.Color("#222")).
+		// Use Faint para simular transparência
+		Faint(true).
+		Render(strings.Repeat(" ", termWid*termHeight/2))
+
+	modalWidth := termWid / 3
+	modalHeight := 7
+
+	modalStyle := lipgloss.NewStyle().
+		Width(modalWidth).
+		Height(modalHeight).
+		Align(lipgloss.Center).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7e40fa")).
+		Background(lipgloss.Color("#22223b"))
+
+	questionStyle := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Foreground(lipgloss.Color("#fff")).
+		PaddingTop(2)
+
+	buttonStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#fff")).
+		Background(lipgloss.Color("#7e40fa")).
+		Padding(0, 2).
+		Margin(1, 1)
+
+	buttons := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		buttonStyle.Render("[Y]es"),
+		buttonStyle.Render("[N]o"),
+	)
+
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		questionStyle.Render(question),
+		buttons,
+	)
+
+	modal := lipgloss.Place(
+		termWid, termHeight,
+		lipgloss.Center, lipgloss.Center,
+		modalStyle.Render(content),
+	)
+
+	return overlay + modal
+}
+
+func ResultEditModalOverlay(question string) string {
+	overlay := lipgloss.NewStyle().
+		Width(termWid).
+		Height(termHeight).
+		Background(lipgloss.Color("#22222265")).
+		// Use Faint para simular transparência
+		Faint(true).
+		Render(strings.Repeat(" ", termWid*termHeight/2))
+
+	modalWidth := termWid / 3
+	modalHeight := 7
+
+	modalStyle := lipgloss.NewStyle().
+		Width(modalWidth).
+		Height(modalHeight).
+		Align(lipgloss.Center).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7e40fa")).
+		Background(lipgloss.Color("#22223b"))
+
+	questionStyle := lipgloss.NewStyle().
+		Align(lipgloss.Bottom).
+		PaddingTop(3).
+		Foreground(lipgloss.Color("#fff"))
+
+	content := lipgloss.JoinVertical(
+		lipgloss.Bottom,
+		questionStyle.Render(question),
+	)
+
+	modal := lipgloss.Place(
+		termWid, termHeight,
+		lipgloss.Center, lipgloss.Center,
+		modalStyle.Render(content),
+	)
+
+	return overlay + modal
 }

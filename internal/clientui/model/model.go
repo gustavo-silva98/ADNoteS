@@ -22,6 +22,8 @@ const (
 	InsertNoteState SessionState = iota
 	ReadNotesState
 	EditNoteSate
+	ConfirmEditSate
+	ResultEditState
 )
 
 type Model struct {
@@ -45,6 +47,7 @@ type Model struct {
 	TextareaEdit    textarea.Model
 	HelpKeys        []key.Binding
 	SelectedNote    list.Item
+	ResultMessage   string
 }
 
 func NewTextAreaEdit() textarea.Model {

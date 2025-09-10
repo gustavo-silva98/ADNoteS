@@ -15,6 +15,8 @@ type KeyMap struct {
 	PageBack   key.Binding
 	PageFoward key.Binding
 	Enter      key.Binding
+	Yes        key.Binding
+	No         key.Binding
 }
 
 var Default = KeyMap{
@@ -28,6 +30,8 @@ var Default = KeyMap{
 	PageBack:   key.NewBinding(key.WithKeys("alt+left"), key.WithHelp("alt+left", "Page Back")),
 	PageFoward: key.NewBinding(key.WithKeys("alt+right"), key.WithHelp("alt+right", "Page Foward")),
 	Enter:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Enter Note")),
+	Yes:        key.NewBinding(key.WithKeys("y", "Y"), key.WithHelp("y", "Yes")),
+	No:         key.NewBinding(key.WithKeys("n", "N"), key.WithHelp("n", "No")),
 }
 
 var ReadNoteKeys = KeyMap{

@@ -18,15 +18,15 @@ type app struct {
 	model.Model
 }
 
-func (a app) Init() tea.Cmd { return nil }
+func (a *app) Init() tea.Cmd { return nil }
 
-func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	m, cmd := update.Update(msg, a.Model)
+func (a *app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	m, cmd := update.Update(msg, &a.Model)
 	a.Model = m
 	return a, cmd
 }
 
-func (a app) View() string {
+func (a *app) View() string {
 	return view.View(a.Model)
 }
 
@@ -36,7 +36,7 @@ func main() {
 	// O nosso "client" vai executar um novo terminal e passar a si mesmo como argumento.
 	// Este é o método "double-exec".
 	if len(os.Args) > 1 && os.Args[1] == "in-terminal" {
-		p := tea.NewProgram(app{Model: model.New()})
+		p := tea.NewProgram(&app{Model: model.New()})
 		if _, err := p.Run(); err != nil {
 			log.Fatal((err))
 		}

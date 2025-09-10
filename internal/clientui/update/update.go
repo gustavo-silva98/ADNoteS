@@ -20,19 +20,16 @@ import (
 var termWidth, termHeight, _ = term.GetSize(os.Stdout.Fd())
 var ctx = context.Background()
 
+// Mensagem para timeout do resultado da edição
+type resultEditTimeoutMsg struct{}
+
 const PageSize = 50
 
-func Update(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
-	/*
-		if msg, ok := msg.(tea.KeyMsg); ok {
-			k := msg.String()
-			if k == "q" {
-				m.Quitting = true
-				return m, tea.Quit
-			}
-		}
-	*/
+func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case resultEditTimeoutMsg:
+		m.State = model.EditNoteSate
+		return *m, nil
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.Keys.Read):
@@ -48,11 +45,15 @@ func Update(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 		return updateReadNoteState(msg, m)
 	case model.EditNoteSate:
 		return updateEditNoteFunc(msg, m)
+	case model.ConfirmEditSate:
+		return updateConfirmEditNote(msg, m)
+	case model.ResultEditState:
+		m.State = model.ReadNotesState
 	}
-	return m, nil
+	return *m, nil
 }
 
-func updateInsertNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
+func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
@@ -75,7 +76,7 @@ func updateInsertNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 			}
 			time.Sleep(500 * time.Millisecond)
 			m.Quitting = true
-			return m, tea.Quit
+			return *m, tea.Quit
 
 		case key.Matches(msg, m.Keys.Esc):
 			if m.Textarea.Focused() {
@@ -83,11 +84,11 @@ func updateInsertNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 			}
 		case key.Matches(msg, m.Keys.Quit):
 			m.Quitting = true
-			return m, tea.Quit
+			return *m, tea.Quit
 		case key.Matches(msg, m.Keys.Read):
 			m.ItemList = queryMapNotes(m)
 			m.State = model.ReadNotesState
-			return m, nil
+			return *m, nil
 		default:
 			if !m.Textarea.Focused() {
 				cmd = m.Textarea.Focus()
@@ -98,7 +99,7 @@ func updateInsertNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 	m.Textarea, cmd = m.Textarea.Update(msg)
 	cmds = append(cmds, cmd)
 
-	return m, tea.Batch(cmds...)
+	return *m, tea.Batch(cmds...)
 
 }
 
@@ -115,7 +116,7 @@ func (i noteItem) Description() string { return i.desc }
 func (i noteItem) FilterValue() string { return i.title }
 func (i noteItem) IdValue() int        { return i.Id }
 
-func queryMapNotes(m model.Model) []list.Item {
+func queryMapNotes(m *model.Model) []list.Item {
 	mapQuery, err := m.DB.QueryNote(PageSize, (m.CurrentPage-1)*PageSize, m.Context)
 	if err != nil {
 		file.WriteTxt(err.Error())
@@ -144,7 +145,7 @@ func queryMapNotes(m model.Model) []list.Item {
 	return items
 }
 
-func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
+func updateReadNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	// Só recarregue a lista se ItemList estiver vazia (primeira vez) ou se mudar de página
@@ -186,7 +187,7 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.Keys.Quit):
 			m.Quitting = true
-			return m, tea.Quit
+			return *m, tea.Quit
 		case key.Matches(msg, m.Keys.PageBack):
 			m.State = model.InsertNoteState
 		case key.Matches(msg, m.Keys.Enter):
@@ -198,10 +199,10 @@ func updateReadNoteState(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 			}
 		}
 	}
-	return m, tea.Batch(cmds...)
+	return *m, tea.Batch(cmds...)
 }
 
-func updateEditNoteFunc(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
+func updateEditNoteFunc(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	// Atualize o TextareaEdit com o evento recebido
@@ -220,6 +221,24 @@ func updateEditNoteFunc(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 			}
 
 		case key.Matches(msg, m.Keys.Save):
+			m.State = model.ConfirmEditSate
+		}
+
+	}
+	return *m, tea.Batch(cmds...)
+}
+
+func updateConfirmEditNote(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	var cmd tea.Cmd
+
+	cmds = append(cmds, cmd)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.Keys.Yes):
 			if selected := m.ListModel.SelectedItem(); selected != nil {
 				if note, ok := selected.(noteItem); ok {
 					noteInput := file.Note{
@@ -231,22 +250,33 @@ func updateEditNoteFunc(msg tea.Msg, m model.Model) (model.Model, tea.Cmd) {
 					}
 					rowsUpdated, err := m.DB.UpdateEditNoteRepository(ctx, noteInput)
 					if err != nil {
-						fmt.Println(err)
+						m.ResultMessage = fmt.Sprintf("Erro: %v\nErro ao salvar a nota. Necessário averiguar.", err.Error())
+						m.State = model.ResultEditState
 					}
 					if rowsUpdated == 1 {
-						fmt.Println("Edição da Nota salva.")
+						m.ResultMessage = fmt.Sprintf("Nota %v editada com sucesso.", note.title)
 						m.ItemList = nil
+						m.State = model.ResultEditState
+						return updateResultEditState(msg, m)
+
 					}
 				}
-
 			}
+		case key.Matches(msg, m.Keys.No):
+			m.State = model.EditNoteSate
 		}
-		//	val, ok := m.MapNotes[m.ListModel.SelectedItem()]
 	}
-	return m, tea.Batch(cmds...)
+	return *m, tea.Batch(cmds...)
 }
 
-func helpMaker(m model.Model) []key.Binding {
+func updateResultEditState(_ tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	// retorna o cmd que vai enviar resultEditTimeoutMsg após 500ms
+	return *m, tea.Tick(800*time.Millisecond, func(t time.Time) tea.Msg {
+		return resultEditTimeoutMsg{}
+	})
+}
+
+func helpMaker(m *model.Model) []key.Binding {
 	// helper pra formatar tecla+descrição
 	b := func(keys, helpText string) key.Binding {
 		return key.NewBinding(
@@ -264,12 +294,13 @@ func helpMaker(m model.Model) []key.Binding {
 		}
 	case model.ReadNotesState:
 		return []key.Binding{
+			b("Alt + ←", "Return"),
 			b("Enter", "Edit Note"),
 			b("q", "Quit"),
 		}
 	case model.EditNoteSate:
 		return []key.Binding{
-			b("Enter", "Save Note"),
+			b("Ctrl+s", "Save Note"),
 			b("q", "Quit Editing"),
 		}
 	}
