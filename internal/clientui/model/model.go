@@ -98,7 +98,7 @@ func NewTextAreaEdit() textarea.Model {
 
 func New() Model {
 	ti := textarea.New()
-	ti.Placeholder = "Once upon a time ..."
+	ti.Placeholder = "Digite sua nota..."
 	ti.Focus()
 	ctx := context.Background()
 	sql, _ := file.InitDB("banco.db", ctx)

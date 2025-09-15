@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -62,7 +63,7 @@ func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.Keys.Save):
 			noteExample := file.Note{
-				Hour:         0,
+				Hour:         (time.Now().Unix() - int64(time.Now().Second())),
 				NoteText:     m.Textarea.Value(),
 				Reminder:     0,
 				PlusReminder: 0,
@@ -105,8 +106,8 @@ func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 
 type noteItem struct {
 	title, desc  string
+	NoteText     string
 	Id           int
-	Hour         int
 	Reminder     int
 	PlusReminder int
 }
@@ -132,12 +133,12 @@ func queryMapNotes(m *model.Model) []list.Item {
 	items := make([]list.Item, 0, len(mapQuery))
 	for _, id := range ids {
 		note := m.MapNotes[id]
-		desc := note.NoteText
+		noteTimestamp := time.Unix(note.Hour, 0)
 		items = append(items, noteItem{
-			title:        fmt.Sprintf("Note %d", id),
-			desc:         desc,
+			title:        titleFormatter(note.NoteText),
+			desc:         fmt.Sprintf("%v/%d/%v %v:%02d", noteTimestamp.Day(), noteTimestamp.Month(), noteTimestamp.Year(), noteTimestamp.Hour(), noteTimestamp.Minute()),
+			NoteText:     note.NoteText,
 			Id:           id,
-			Hour:         0,
 			Reminder:     0,
 			PlusReminder: 0,
 		})
@@ -174,7 +175,7 @@ func updateReadNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	selected := m.ListModel.SelectedItem()
 	if selected != nil {
 		if note, ok := selected.(noteItem); ok {
-			wrapped := wordwrap.String(fmt.Sprintf("%v", note.desc), m.TextareaEdit.Width())
+			wrapped := wordwrap.String(fmt.Sprintf("%v", note.NoteText), m.TextareaEdit.Width())
 			// Só atualize o valor se for diferente do atual
 			if m.TextareaEdit.Value() != wrapped {
 				m.TextareaEdit.SetValue(wrapped)
@@ -243,7 +244,7 @@ func updateConfirmEditNote(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 				if note, ok := selected.(noteItem); ok {
 					noteInput := file.Note{
 						ID:           note.Id,
-						Hour:         note.Hour,
+						Hour:         time.Now().Unix(),
 						NoteText:     m.TextareaEdit.Value(),
 						Reminder:     note.Reminder,
 						PlusReminder: note.PlusReminder,
@@ -305,4 +306,13 @@ func helpMaker(m *model.Model) []key.Binding {
 		}
 	}
 	return []key.Binding{}
+}
+
+func titleFormatter(title string) string {
+	maxLineLenght := 40
+	splitStr := strings.Split(title, ",")[0]
+	if len(splitStr) > maxLineLenght {
+		return splitStr[0:maxLineLenght] + "..."
+	}
+	return splitStr
 }

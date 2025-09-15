@@ -24,7 +24,7 @@ type SqliteHandler struct {
 
 type Note struct {
 	ID           int
-	Hour         int
+	Hour         int64
 	NoteText     string
 	Reminder     int
 	PlusReminder int
@@ -40,7 +40,7 @@ func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
 		`CREATE TABLE IF NOT EXISTS notas (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			hour INTEGER NOT NULL,
-			note TEXT NOT NULL,
+			note_text TEXT NOT NULL,
 			reminder INTEGER,
 			plusreminder INTEGER
 		)`,
@@ -59,7 +59,7 @@ func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
 
 	res, err := s.db.ExecContext(
 		ctx,
-		`INSERT INTO notas (hour, note, reminder, plusreminder) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO notas (hour, note_text, reminder, plusreminder) VALUES (?, ?, ?, ?)`,
 		n.Hour, n.NoteText, n.Reminder, n.PlusReminder,
 	)
 	if err != nil {
@@ -138,7 +138,7 @@ func (s SqliteHandler) UpdateEditNoteRepository(ctx context.Context, note Note) 
 	row, err := s.db.ExecContext(
 		ctx,
 		`UPDATE notas
-		SET hour = ?, note = ?, reminder = ?, plusreminder = ?
+		SET hour = ?, note_text = ?, reminder = ?, plusreminder = ?
 		WHERE id = ?`,
 		note.Hour, note.NoteText, note.Reminder, note.PlusReminder, note.ID)
 	if err != nil {
