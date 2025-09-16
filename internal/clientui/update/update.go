@@ -29,7 +29,9 @@ const PageSize = 50
 func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case resultEditTimeoutMsg:
-		m.State = model.EditNoteSate
+		m.State = model.ReadNotesState
+		m.HelpKeys = helpMaker(m)
+
 		return *m, nil
 	case tea.KeyMsg:
 		switch {
@@ -48,6 +50,8 @@ func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		return updateEditNoteFunc(msg, m)
 	case model.ConfirmEditSate:
 		return updateConfirmEditNote(msg, m)
+	case model.DeleteNoteState:
+		return updateConfirmDeleteNote(msg, m)
 	case model.ResultEditState:
 		m.State = model.ReadNotesState
 	}
@@ -191,6 +195,8 @@ func updateReadNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 			return *m, tea.Quit
 		case key.Matches(msg, m.Keys.PageBack):
 			m.State = model.InsertNoteState
+		case key.Matches(msg, m.Keys.Delete):
+			m.State = model.DeleteNoteState
 		case key.Matches(msg, m.Keys.Enter):
 			// Ao entrar no modo de edição, inicialize e foque o TextareaEdit
 			m.State = model.EditNoteSate
@@ -229,6 +235,40 @@ func updateEditNoteFunc(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	return *m, tea.Batch(cmds...)
 }
 
+func updateConfirmDeleteNote(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
+	cmds = append(cmds, cmd)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.Keys.Yes):
+			if selected := m.ListModel.SelectedItem(); selected != nil {
+				if note, ok := selected.(noteItem); ok {
+					rowsUpdated, err := m.DB.DeleteNoteRepository(ctx, note.Id)
+					if err != nil {
+						m.ResultMessage = fmt.Sprintf("Erro: %v\nErro ao deletar a nota.", err.Error())
+						m.State = model.ReadNotesState
+					}
+					if rowsUpdated == 1 {
+						m.ResultMessage = fmt.Sprintf("Nota %v deletada com sucesso.", note.title)
+						m.ItemList = queryMapNotes(m)
+						m.ListModel.SetItems(m.ItemList)
+						m.State = model.ResultEditState
+						return updateResultEditState(msg, m)
+					}
+				}
+			}
+		case key.Matches(msg, m.Keys.No):
+			m.State = model.ReadNotesState
+		}
+
+	}
+	return *m, tea.Batch(cmds...)
+}
+
 func updateConfirmEditNote(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -256,7 +296,8 @@ func updateConfirmEditNote(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 					}
 					if rowsUpdated == 1 {
 						m.ResultMessage = fmt.Sprintf("Nota %v editada com sucesso.", note.title)
-						m.ItemList = nil
+						m.ItemList = queryMapNotes(m)
+						m.ListModel.SetItems(m.ItemList)
 						m.State = model.ResultEditState
 						return updateResultEditState(msg, m)
 
@@ -297,6 +338,7 @@ func helpMaker(m *model.Model) []key.Binding {
 		return []key.Binding{
 			b("Alt + ←", "Return"),
 			b("Enter", "Edit Note"),
+			b("Ctrl+d", "Delete Note"),
 			b("q", "Quit"),
 		}
 	case model.EditNoteSate:

@@ -63,6 +63,9 @@ func View(m model.Model) string {
 	case model.ConfirmEditSate:
 		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
 		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + YesNoModalOverlay("Do you want to save changes?")
+	case model.DeleteNoteState:
+		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
+		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + YesNoModalOverlay("Do you want to delete?")
 	case model.ResultEditState:
 		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(termWid/2, lipgloss.Center, EditNoteView(m)))
 		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + ResultEditModalOverlay(m.ResultMessage)

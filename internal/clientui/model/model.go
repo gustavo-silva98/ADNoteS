@@ -24,6 +24,7 @@ const (
 	EditNoteSate
 	ConfirmEditSate
 	ResultEditState
+	DeleteNoteState
 )
 
 type Model struct {

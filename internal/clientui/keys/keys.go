@@ -17,6 +17,7 @@ type KeyMap struct {
 	Enter      key.Binding
 	Yes        key.Binding
 	No         key.Binding
+	Delete     key.Binding
 }
 
 var Default = KeyMap{
@@ -32,6 +33,7 @@ var Default = KeyMap{
 	Enter:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Enter Note")),
 	Yes:        key.NewBinding(key.WithKeys("y", "Y"), key.WithHelp("y", "Yes")),
 	No:         key.NewBinding(key.WithKeys("n", "N"), key.WithHelp("n", "No")),
+	Delete:     key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "Delete Note")),
 }
 
 var ReadNoteKeys = KeyMap{

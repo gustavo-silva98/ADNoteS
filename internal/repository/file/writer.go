@@ -14,6 +14,7 @@ type Writer interface {
 	InsertNote(n *Note, ctx context.Context) (int64, error)
 	QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error)
 	UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error)
+	DeleteNoteRepository(ctx context.Context, noteId int) (int64, error)
 }
 
 type SqliteHandler struct {
@@ -151,4 +152,18 @@ func (s SqliteHandler) UpdateEditNoteRepository(ctx context.Context, note Note) 
 
 	return ra, nil
 
+}
+
+func (s SqliteHandler) DeleteNoteRepository(ctx context.Context, noteId int) (int64, error) {
+
+	row, err := s.db.ExecContext(ctx, `DELETE FROM notas WHERE id = ?`, noteId)
+	if err != nil {
+		return 0, err
+	}
+	ra, err := row.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return ra, nil
 }
