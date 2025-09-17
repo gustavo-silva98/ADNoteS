@@ -3,7 +3,6 @@ package update
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -12,13 +11,12 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/term"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
 	"github.com/gustavo-silva98/adnotes/internal/repository/file"
 	"github.com/muesli/reflow/wordwrap"
 )
 
-var termWidth, termHeight, _ = term.GetSize(os.Stdout.Fd())
+// var termWidth, termHeight, _ = term.GetSize(os.Stdout.Fd())
 var ctx = context.Background()
 
 // Mensagem para timeout do resultado da edição
@@ -63,6 +61,9 @@ func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.TermHeight = msg.Height
+		m.TermWidth = msg.Width
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.Keys.Save):
@@ -164,7 +165,7 @@ func updateReadNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		d.Styles.SelectedDesc = d.Styles.SelectedDesc.Foreground(c1).BorderLeftForeground(c)
 		d.Styles.NormalDesc = d.Styles.NormalDesc.Foreground(lipgloss.Color("#f2c9faff")).Faint(true)
 
-		l := list.New(m.ItemList, d, termWidth/2, (termHeight/10)*9)
+		l := list.New(m.ItemList, d, m.TermWidth/2, (m.TermHeight/10)*7)
 		l.Styles.Title = l.Styles.Title.Background(lipgloss.Color("#9D2EB0")).Foreground(lipgloss.Color("#E0D9F6"))
 		l.Title = "Notas"
 		l.SetShowHelp(false)

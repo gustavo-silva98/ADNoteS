@@ -49,6 +49,8 @@ type Model struct {
 	HelpKeys        []key.Binding
 	SelectedNote    list.Item
 	ResultMessage   string
+	TermHeight      int
+	TermWidth       int
 }
 
 func NewTextAreaEdit() textarea.Model {
