@@ -63,12 +63,11 @@ func fn() {
 
 var clientCmd *exec.Cmd
 
-func runClient(command string) {
+func runClient(command string, arg string) {
 	log.Println("Processo não está rodando. Iniciando...")
 
-	// O binário do cliente deve abrir a sua própria janela de terminal.1
-	clientCmd = exec.Command(command)
-
+	clientCmd = exec.Command(command, arg)
+	//file.WriteTxt(fmt.Sprint(clientCmd.Args))
 	if err := clientCmd.Start(); err != nil {
 		log.Printf("Erro ao iniciar o comando: %v", err)
 		return
@@ -104,7 +103,7 @@ func executeTerminal() error {
 	log.Printf("Tentando executar o binário em %v", clientBinaryPath)
 	fmt.Println("ClientBinary = ", clientBinaryPath)
 	if _, err := os.Stat(clientBinaryPath); err == nil {
-		runClient(clientBinaryPath)
+		runClient(clientBinaryPath, "ReadNote")
 	} else {
 		log.Printf("Binário do cliente não encontrado em %s: %v", clientBinaryPath, err)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/update"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/view"
+	"github.com/gustavo-silva98/adnotes/internal/repository/file"
 )
 
 type app struct {
@@ -35,11 +36,21 @@ func main() {
 	// A lógica para abrir o terminal é diferente por sistema operacional.
 	// O nosso "client" vai executar um novo terminal e passar a si mesmo como argumento.
 	// Este é o método "double-exec".
-	if len(os.Args) > 1 && os.Args[1] == "in-terminal" {
-		p := tea.NewProgram(&app{Model: model.New()})
+	if len(os.Args) > 1 && os.Args[len(os.Args)-1] == "in-terminal" {
+		m := model.New()
+
+		switch os.Args[1] {
+		case "InsertNote":
+			m.State = model.InsertNoteState
+		case "ReadNote":
+			m.State = model.ReadNotesState
+		}
+		p := tea.NewProgram(&app{Model: m})
 		if _, err := p.Run(); err != nil {
 			log.Fatal((err))
 		}
+
+		file.WriteTxt(fmt.Sprintf("Argumento recebido: %v", os.Args))
 		return
 	}
 
@@ -54,13 +65,10 @@ func main() {
 	switch runtime.GOOS {
 	case "linux":
 		cmd = exec.Command("gnome-terminal", "--", "bash", "-c", fmt.Sprintf("%s in-terminal", exePath))
-	case "darwin":
-		// Abre o terminal e executa o comando.
-		cmd = exec.Command("osascript", "-e", fmt.Sprintf(`tell app "Terminal" to do script "%s in-terminal"`, exePath))
 	case "windows":
 		log.Println("o exePath é ", exePath)
 		cmd = exec.Command(
-			"cmd.exe", "/C", "start", "cmd.exe", "/C", exePath, "in-terminal",
+			"cmd.exe", "/C", "start", "cmd.exe", "/C", exePath, os.Args[1], "in-terminal",
 		)
 		log.Println("O comando inserido é : ", cmd)
 	default:
