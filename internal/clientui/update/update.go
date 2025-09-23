@@ -26,6 +26,10 @@ const PageSize = 50
 
 func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.TermHeight = msg.Height - msg.Height/10
+		m.TermWidth = msg.Width
+
 	case resultEditTimeoutMsg:
 		m.State = model.ReadNotesState
 		m.HelpKeys = helpMaker(m)
@@ -61,9 +65,6 @@ func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.TermHeight = msg.Height
-		m.TermWidth = msg.Width
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.Keys.Save):

@@ -2,11 +2,9 @@ package view
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/term"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
 )
 
@@ -48,8 +46,7 @@ func View(m model.Model) string {
 
 	var helpStyle = lipgloss.NewStyle().
 		AlignVertical(lipgloss.Bottom).
-		AlignHorizontal(lipgloss.Center).
-		MarginTop(2)
+		AlignHorizontal(lipgloss.Center)
 
 	switch m.State {
 	case model.InsertNoteState:
@@ -75,29 +72,34 @@ func View(m model.Model) string {
 }
 
 func InsertNoteView(m model.Model) string {
-	termWid, termHeight, err := term.GetSize(os.Stdout.Fd())
-	if err != nil {
-		return ""
-	}
+	/*
+		termWid, termHeight, err := term.GetSize(os.Stdout.Fd())
+		if err != nil {
+			return ""
+		}
+	*/
+	logoHeight := m.TermHeight / 3
+	textHeight := m.TermHeight / 2
+	helpheight := m.TermHeight - logoHeight - textHeight
+	elementWidth := m.TermWidth - (m.TermWidth / 10)
 
 	logoStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#6d40f3ff")).
 		Align(lipgloss.Center).
-		Width(m.TermWidth).
-		PaddingBottom(3)
+		Width(elementWidth).
+		Height(logoHeight)
 
 	var textStyle = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#7e40fa")).
-		Padding(1, 1).
-		PaddingBottom(3).
-		Width(m.TermWidth * 9 / 10)
+		Width(elementWidth).
+		Height(textHeight)
 
 	var helpStyle = lipgloss.NewStyle().
 		AlignVertical(lipgloss.Bottom).
 		AlignHorizontal(lipgloss.Center).
-		PaddingTop(3).
-		MarginBottom(1)
+		Height(helpheight).
+		Width(elementWidth)
 
 	content := fmt.Sprintf(
 		"Digite sua anotação abaixo. \n\n%s",
@@ -106,16 +108,16 @@ func InsertNoteView(m model.Model) string {
 	helpView := m.Help.View(m.Keys)
 
 	mainContent := lipgloss.JoinVertical(
-		lipgloss.Center,
+		lipgloss.Top,
 		logoStyle.Render(renderLogo()),
 		textStyle.Render(content),
 		helpStyle.Render(helpView),
 	)
 
 	output := lipgloss.Place(
-		termWid,
-		termHeight,
-		lipgloss.Center, lipgloss.Center,
+		m.TermWidth,
+		m.TermHeight,
+		lipgloss.Center, lipgloss.Top,
 		mainContent,
 	)
 
