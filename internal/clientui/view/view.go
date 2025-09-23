@@ -42,30 +42,20 @@ func View(m model.Model) string {
 	if m.Quitting {
 		return "Bye!\n"
 	}
-	helpview := m.Help.ShortHelpView(m.HelpKeys)
-
-	var helpStyle = lipgloss.NewStyle().
-		AlignVertical(lipgloss.Bottom).
-		AlignHorizontal(lipgloss.Center)
 
 	switch m.State {
 	case model.InsertNoteState:
 		output = InsertNoteView(m)
 	case model.ReadNotesState:
-		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(m.TermWidth/2, lipgloss.Center, EditNoteView(m)))
-		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview))
+		output = EditNoteView(m)
 	case model.EditNoteSate:
-		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(m.TermWidth/2, lipgloss.Center, EditNoteView(m)))
-		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview))
+		output = EditNoteView(m)
 	case model.ConfirmEditSate:
-		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(m.TermWidth/2, lipgloss.Center, EditNoteView(m)))
-		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + YesNoModalOverlay(m, "Do you want to save changes?")
+		output = EditNoteView(m) + YesNoModalOverlay(m, "Do you want to save changes?")
 	case model.DeleteNoteState:
-		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(m.TermWidth/2, lipgloss.Center, EditNoteView(m)))
-		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + YesNoModalOverlay(m, "Do you want to delete?")
+		output = EditNoteView(m) + YesNoModalOverlay(m, "Do you want to delete?")
 	case model.ResultEditState:
-		horizontal := lipgloss.JoinHorizontal(lipgloss.Top, ListModelView(m), lipgloss.PlaceHorizontal(m.TermWidth/2, lipgloss.Center, EditNoteView(m)))
-		output = lipgloss.JoinVertical(lipgloss.Center, horizontal, helpStyle.Render(helpview)) + ResultEditModalOverlay(m, m.ResultMessage)
+		output = EditNoteView(m) + ResultEditModalOverlay(m, m.ResultMessage)
 	}
 
 	return output
@@ -124,24 +114,46 @@ func InsertNoteView(m model.Model) string {
 	return output
 }
 
-func EditNoteView(m model.Model) string {
+func textareaEditView(m model.Model) string {
 	var textStyle = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#7e40faff")).
-		MarginLeft(8).
-		Width((m.TermWidth / 2)).
-		Height(m.TermHeight / 10 * 7).
-		AlignVertical(lipgloss.Center)
+		BorderForeground(lipgloss.Color("#7e40faff"))
 
-	//output := lipgloss.PlaceHorizontal((termWid / 2), lipgloss.Right, textStyle.Render(m.TextareaEdit.View()))
 	return textStyle.Render(m.TextareaEdit.View())
+}
 
+func EditNoteView(m model.Model) string {
+	listWidth := m.TermWidth / 2
+	editorWidth := m.TermWidth - listWidth
+
+	contentHeight := m.TermHeight - 3
+	helpHeight := 3
+
+	listStyle := lipgloss.NewStyle().
+		Width(listWidth).
+		Height(contentHeight)
+
+	editorStyle := lipgloss.NewStyle().
+		Width(editorWidth).
+		Height(contentHeight)
+
+	helpStyle := lipgloss.NewStyle().
+		AlignVertical(lipgloss.Bottom).
+		AlignHorizontal(lipgloss.Center).
+		Width(m.TermWidth).
+		Height(helpHeight)
+
+	list := listStyle.Render(m.ListModel.View())
+	editor := editorStyle.Render(textareaEditView(m))
+	horizontal := lipgloss.JoinHorizontal(lipgloss.Top, list, editor)
+	output := lipgloss.JoinVertical(lipgloss.Top, horizontal, helpStyle.Render(m.Help.ShortHelpView(m.HelpKeys)))
+
+	return output
 }
 
 func ListModelView(m model.Model) string {
 	var listModelStyle = lipgloss.NewStyle().
-		PaddingTop(1).
-		Width(int(float64(m.TermWidth) / 2.5))
+		AlignHorizontal(lipgloss.Center)
 
 	return listModelStyle.Render(m.ListModel.View())
 }
@@ -156,7 +168,14 @@ func YesNoModalOverlay(m model.Model, question string) string {
 		Render(strings.Repeat(" ", m.TermWidth*m.TermHeight/2))
 
 	modalWidth := m.TermWidth / 3
+	if modalWidth > m.TermWidth {
+		modalWidth = m.TermWidth
+	}
+
 	modalHeight := 7
+	if modalHeight > m.TermHeight {
+		modalHeight = m.TermHeight
+	}
 
 	modalStyle := lipgloss.NewStyle().
 		Width(modalWidth).
@@ -203,12 +222,18 @@ func ResultEditModalOverlay(m model.Model, question string) string {
 		Width(m.TermWidth).
 		Height(m.TermHeight).
 		Background(lipgloss.Color("#22222265")).
-		// Use Faint para simular transparência
 		Faint(true).
 		Render(strings.Repeat(" ", m.TermWidth*m.TermHeight/2))
 
 	modalWidth := m.TermWidth / 3
+	if modalWidth > m.TermWidth {
+		modalWidth = m.TermWidth
+	}
+
 	modalHeight := 7
+	if modalHeight > m.TermHeight {
+		modalHeight = m.TermHeight
+	}
 
 	modalStyle := lipgloss.NewStyle().
 		Width(modalWidth).
@@ -224,7 +249,7 @@ func ResultEditModalOverlay(m model.Model, question string) string {
 		Foreground(lipgloss.Color("#fff"))
 
 	content := lipgloss.JoinVertical(
-		lipgloss.Bottom,
+		lipgloss.Center,
 		questionStyle.Render(question),
 	)
 

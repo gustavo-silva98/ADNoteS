@@ -2,19 +2,15 @@ package model
 
 import (
 	"context"
-	"os"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/term"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/keys"
 	"github.com/gustavo-silva98/adnotes/internal/repository/file"
 )
-
-var termWidth, termHeight, _ = term.GetSize(os.Stdout.Fd())
 
 type SessionState uint
 
@@ -79,8 +75,6 @@ func NewTextAreaEdit() textarea.Model {
 	)
 
 	t := textarea.New()
-	t.SetWidth((termWidth / 100) * 57)
-	t.SetHeight(int(float64(termHeight) / 10 * 7.5))
 	t.BlurredStyle.Base.MarginBottom(5)
 	t.ShowLineNumbers = true
 	t.Cursor.Style = cursorStyle

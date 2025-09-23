@@ -166,13 +166,16 @@ func updateReadNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		d.Styles.SelectedDesc = d.Styles.SelectedDesc.Foreground(c1).BorderLeftForeground(c)
 		d.Styles.NormalDesc = d.Styles.NormalDesc.Foreground(lipgloss.Color("#f2c9faff")).Faint(true)
 
-		l := list.New(m.ItemList, d, m.TermWidth/2, (m.TermHeight/10)*7)
+		l := list.New(m.ItemList, d, m.TermWidth/3, m.TermHeight-3)
 		l.Styles.Title = l.Styles.Title.Background(lipgloss.Color("#9D2EB0")).Foreground(lipgloss.Color("#E0D9F6"))
 		l.Title = "Notas"
 		l.SetShowHelp(false)
 
 		m.ListModel = l
 	}
+	m.ListModel.SetSize(m.TermWidth/2, m.TermHeight-5)
+	m.TextareaEdit.SetHeight(m.TermHeight - 5)
+	m.TextareaEdit.SetWidth(m.TermWidth - m.ListModel.Width() - 2)
 
 	var cmd tea.Cmd
 	m.ListModel, cmd = m.ListModel.Update(msg)
@@ -355,6 +358,7 @@ func helpMaker(m *model.Model) []key.Binding {
 func titleFormatter(title string) string {
 	maxLineLenght := 40
 	splitStr := strings.Split(title, ",")[0]
+	splitStr = strings.Split(splitStr, "\n")[0]
 	if len(splitStr) > maxLineLenght {
 		return splitStr[0:maxLineLenght] + "..."
 	}
