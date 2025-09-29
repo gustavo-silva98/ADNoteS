@@ -13,6 +13,8 @@ import (
 type Writer interface {
 	InsertNote(n *Note, ctx context.Context) (int64, error)
 	QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error)
+	UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error)
+	DeleteNoteRepository(ctx context.Context, noteId int) (int64, error)
 }
 
 type SqliteHandler struct {
@@ -22,15 +24,11 @@ type SqliteHandler struct {
 }
 
 type Note struct {
-	Hour         int
+	ID           int
+	Hour         int64
 	NoteText     string
 	Reminder     int
 	PlusReminder int
-}
-
-type NoteRow struct {
-	ID int
-	Note
 }
 
 func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
@@ -43,7 +41,7 @@ func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
 		`CREATE TABLE IF NOT EXISTS notas (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			hour INTEGER NOT NULL,
-			note TEXT NOT NULL,
+			note_text TEXT NOT NULL,
 			reminder INTEGER,
 			plusreminder INTEGER
 		)`,
@@ -62,7 +60,7 @@ func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
 
 	res, err := s.db.ExecContext(
 		ctx,
-		`INSERT INTO notas (hour, note, reminder, plusreminder) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO notas (hour, note_text, reminder, plusreminder) VALUES (?, ?, ?, ?)`,
 		n.Hour, n.NoteText, n.Reminder, n.PlusReminder,
 	)
 	if err != nil {
@@ -87,12 +85,12 @@ func (s SqliteHandler) QueryNote(limit int, offset int, ctx context.Context) (ma
 	defer rows.Close()
 	var queryMap = map[int]Note{}
 	for rows.Next() {
-		var note NoteRow
+		var note Note
 		err := rows.Scan(&note.ID, &note.Hour, &note.NoteText, &note.Reminder, &note.PlusReminder)
 		if err != nil {
 			return nil, err
 		}
-		queryMap[note.ID] = note.Note
+		queryMap[note.ID] = note
 	}
 
 	return queryMap, nil
@@ -135,4 +133,37 @@ func (s SqliteHandler) GetFirsIndexPage(ctx context.Context) (int, error) {
 		return 10, nil
 	}
 	return count, nil
+}
+
+func (s SqliteHandler) UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error) {
+	row, err := s.db.ExecContext(
+		ctx,
+		`UPDATE notas
+		SET hour = ?, note_text = ?, reminder = ?, plusreminder = ?
+		WHERE id = ?`,
+		note.Hour, note.NoteText, note.Reminder, note.PlusReminder, note.ID)
+	if err != nil {
+		return 0, err
+	}
+	ra, err := row.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return ra, nil
+
+}
+
+func (s SqliteHandler) DeleteNoteRepository(ctx context.Context, noteId int) (int64, error) {
+
+	row, err := s.db.ExecContext(ctx, `DELETE FROM notas WHERE id = ?`, noteId)
+	if err != nil {
+		return 0, err
+	}
+	ra, err := row.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return ra, nil
 }

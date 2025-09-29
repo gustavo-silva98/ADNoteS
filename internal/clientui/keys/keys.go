@@ -14,17 +14,10 @@ type KeyMap struct {
 	Back       key.Binding
 	PageBack   key.Binding
 	PageFoward key.Binding
-}
-
-func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Save, k.Help, k.Quit}
-}
-
-func (k KeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Save, k.Up},
-		{k.Help, k.Quit},
-	}
+	Enter      key.Binding
+	Yes        key.Binding
+	No         key.Binding
+	Delete     key.Binding
 }
 
 var Default = KeyMap{
@@ -37,4 +30,25 @@ var Default = KeyMap{
 	Back:       key.NewBinding(key.WithKeys("left"), key.WithHelp("left", "Get back")),
 	PageBack:   key.NewBinding(key.WithKeys("alt+left"), key.WithHelp("alt+left", "Page Back")),
 	PageFoward: key.NewBinding(key.WithKeys("alt+right"), key.WithHelp("alt+right", "Page Foward")),
+	Enter:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Enter Note")),
+	Yes:        key.NewBinding(key.WithKeys("y", "Y"), key.WithHelp("y", "Yes")),
+	No:         key.NewBinding(key.WithKeys("n", "N"), key.WithHelp("n", "No")),
+	Delete:     key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "Delete Note")),
+}
+
+var ReadNoteKeys = KeyMap{
+	PageBack: key.NewBinding(key.WithKeys("alt+left"), key.WithHelp("alt+left", "Return Home")),
+	Quit:     key.NewBinding(key.WithKeys("q", "esc", "ctrl+q"), key.WithHelp("q", "quit")),
+	Enter:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Enter Note")),
+}
+
+func (k KeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Save, k.Help, k.Quit}
+}
+
+func (k KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Save, k.Up},
+		{k.Help, k.Quit},
+	}
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -24,51 +23,110 @@ var runState = struct {
 
 func main() { mainthread.Init(fn) }
 func fn() {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	fmt.Println("Server iniciando...")
 
 	// Captura sinais do sistema (como Ctrl+C)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// Canal para coordenar o encerramento de todas as goroutines
+	done := make(chan struct{})
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	// Goroutine para capturar sinais e fechar o canal done
 	go func() {
 		<-sigs
 		log.Println("Encerrando...")
-		cancel()
+		close(done) // Fecha o canal, sinalizando para todas as goroutines encerrarem
 	}()
 
-	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyH)
-	err := hk.Register()
-	if err != nil {
-		log.Fatalf("hotkey: Failed to register hotkey: %v", err)
-		return
-	}
+	go func() {
+		defer wg.Done()
+		for {
+			// Registra a hotkey
+			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyH)
+			err := hk.Register()
+			if err != nil {
+				log.Println("Erro ao registrar hotkey H:", err)
+				continue
+			}
 
-	log.Printf("hotkey: %v is registered\n", hk)
-	defer hk.Unregister()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-hk.Keydown():
-			log.Printf("hotkey: %v is down\n", hk)
-			executeTerminal()
-		case <-hk.Keyup():
-			log.Printf("hotkey: %v is up\n", hk)
+			// Usa select para poder cancelar
+			select {
+			case <-done:
+				hk.Unregister()
+				return
+			case <-hk.Keydown():
+				fmt.Println("Foi pressionado o H")
+				executeTerminal("InsertNote")
+				<-hk.Keyup() // Espera soltar a tecla
+			}
+			hk.Unregister()
 		}
-	}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+
+			// Registra a hotkey
+			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyR)
+			err := hk.Register()
+			if err != nil {
+				log.Println("Erro ao registrar hotkey R:", err)
+				continue
+			}
+
+			// Usa select para poder cancelar
+			select {
+			case <-done:
+				hk.Unregister()
+				return
+			case <-hk.Keydown():
+				fmt.Println("Foi pressionado o R")
+				executeTerminal("ReadNote")
+				<-hk.Keyup() // Espera soltar a tecla
+			}
+			hk.Unregister()
+		}
+	}()
+	wg.Wait()
+
+	/*
+
+		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyH)
+		err := hk.Register()
+		if err != nil {
+			log.Fatalf("hotkey: Failed to register hotkey: %v", err)
+			return
+		}
+
+		log.Printf("hotkey: %v is registered\n", hk)
+		defer hk.Unregister()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-hk.Keydown():
+				log.Printf("hotkey: %v is down\n", hk)
+				executeTerminal()
+			case <-hk.Keyup():
+				log.Printf("hotkey: %v is up\n", hk)
+			}
+		}
+	*/
 }
 
 var clientCmd *exec.Cmd
 
-func runClient(command string) {
+func runClient(command string, arg string) {
 	log.Println("Processo não está rodando. Iniciando...")
 
-	// O binário do cliente deve abrir a sua própria janela de terminal.1
-	clientCmd = exec.Command(command)
-
+	clientCmd = exec.Command(command, arg)
+	//file.WriteTxt(fmt.Sprint(clientCmd.Args))
 	if err := clientCmd.Start(); err != nil {
 		log.Printf("Erro ao iniciar o comando: %v", err)
 		return
@@ -90,7 +148,7 @@ func runClient(command string) {
 	}()
 }
 
-func executeTerminal() error {
+func executeTerminal(arg string) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("erro ao achar executavel. Erro: %v", err)
@@ -104,7 +162,7 @@ func executeTerminal() error {
 	log.Printf("Tentando executar o binário em %v", clientBinaryPath)
 	fmt.Println("ClientBinary = ", clientBinaryPath)
 	if _, err := os.Stat(clientBinaryPath); err == nil {
-		runClient(clientBinaryPath)
+		runClient(clientBinaryPath, arg)
 	} else {
 		log.Printf("Binário do cliente não encontrado em %s: %v", clientBinaryPath, err)
 	}
