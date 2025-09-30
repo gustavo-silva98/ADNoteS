@@ -20,7 +20,7 @@ type Writer interface {
 type SqliteHandler struct {
 	DbPath    string
 	TableName string
-	db        *sql.DB
+	DB        *sql.DB
 }
 
 type Note struct {
@@ -52,13 +52,13 @@ func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
 	return &SqliteHandler{
 		DbPath:    pathString,
 		TableName: "notas",
-		db:        db,
+		DB:        db,
 	}, nil
 }
 
 func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
 
-	res, err := s.db.ExecContext(
+	res, err := s.DB.ExecContext(
 		ctx,
 		`INSERT INTO notas (hour, note_text, reminder, plusreminder) VALUES (?, ?, ?, ?)`,
 		n.Hour, n.NoteText, n.Reminder, n.PlusReminder,
@@ -74,7 +74,7 @@ func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
 }
 
 func (s SqliteHandler) QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error) {
-	rows, err := s.db.QueryContext(
+	rows, err := s.DB.QueryContext(
 		ctx,
 		`SELECT * FROM notas ORDER BY id DESC LIMIT ? OFFSET ?`,
 		limit, offset,
@@ -114,7 +114,7 @@ func WriteTxt(msg string) {
 }
 
 func (s SqliteHandler) GetFirsIndexPage(ctx context.Context) (int, error) {
-	row, err := s.db.QueryContext(
+	row, err := s.DB.QueryContext(
 		ctx,
 		fmt.Sprintf(`SELECT COUNT(*) FROM %v`, s.TableName),
 	)
@@ -136,7 +136,7 @@ func (s SqliteHandler) GetFirsIndexPage(ctx context.Context) (int, error) {
 }
 
 func (s SqliteHandler) UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error) {
-	row, err := s.db.ExecContext(
+	row, err := s.DB.ExecContext(
 		ctx,
 		`UPDATE notas
 		SET hour = ?, note_text = ?, reminder = ?, plusreminder = ?
@@ -156,7 +156,7 @@ func (s SqliteHandler) UpdateEditNoteRepository(ctx context.Context, note Note) 
 
 func (s SqliteHandler) DeleteNoteRepository(ctx context.Context, noteId int) (int64, error) {
 
-	row, err := s.db.ExecContext(ctx, `DELETE FROM notas WHERE id = ?`, noteId)
+	row, err := s.DB.ExecContext(ctx, `DELETE FROM notas WHERE id = ?`, noteId)
 	if err != nil {
 		return 0, err
 	}
