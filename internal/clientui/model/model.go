@@ -2,6 +2,8 @@ package model
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -98,7 +100,10 @@ func New() Model {
 	ti.Placeholder = "Digite sua nota..."
 	ti.Focus()
 	ctx := context.Background()
-	sql, _ := file.InitDB("banco.db", ctx)
+	os.Mkdir(filepath.Join("..", "data"), os.ModePerm)
+	dbPath := filepath.Join("..", "/data/banco.db")
+
+	sql, _ := file.InitDB(dbPath, ctx)
 
 	textEdit := NewTextAreaEdit()
 	firstIndex, err := sql.GetFirsIndexPage(ctx)

@@ -12,7 +12,6 @@ import (
 	"github.com/gustavo-silva98/adnotes/internal/clientui/model"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/update"
 	"github.com/gustavo-silva98/adnotes/internal/clientui/view"
-	"github.com/gustavo-silva98/adnotes/internal/repository/file"
 )
 
 type app struct {
@@ -34,7 +33,7 @@ func (a *app) View() string {
 func main() {
 
 	// A lógica para abrir o terminal é diferente por sistema operacional.
-	// O nosso "client" vai executar um novo terminal e passar a si mesmo como argumento.
+	// O "client" vai executar um novo terminal e passar a si mesmo como argumento.
 	// Este é o método "double-exec".
 	if len(os.Args) > 1 && os.Args[len(os.Args)-1] == "in-terminal" {
 		m := model.New()
@@ -49,8 +48,6 @@ func main() {
 		if _, err := p.Run(); err != nil {
 			log.Fatal((err))
 		}
-
-		file.WriteTxt(fmt.Sprintf("Argumento recebido: %v", os.Args))
 		return
 	}
 
@@ -70,7 +67,6 @@ func main() {
 		cmd = exec.Command(
 			"cmd.exe", "/C", "start", "cmd.exe", "/C", exePath, os.Args[1], "in-terminal",
 		)
-		log.Println("O comando inserido é : ", cmd)
 	default:
 		fmt.Println("Sistema operacional não suportado.")
 		return

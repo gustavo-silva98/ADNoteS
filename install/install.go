@@ -46,7 +46,6 @@ func BinCompiler(installFolder string, compiledName string, codeFolder string) b
 	compiled := true
 	clientPath := filepath.Join(installFolder, compiledName)
 	err := exec.Command("go", "build", "-o", clientPath, fmt.Sprintf("./cmd/%v", codeFolder)).Run()
-	fmt.Printf(".ADNoteS/cmd/%v\n", codeFolder)
 	if err != nil {
 		fmt.Printf("Erro ao compilar binario: %v\n", err)
 		compiled = false

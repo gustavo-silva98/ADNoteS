@@ -75,9 +75,7 @@ func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 				PlusReminder: 0,
 			}
 
-			sql, _ := file.InitDB("banco.db", ctx)
-
-			_, err := sql.InsertNote(&noteExample, ctx)
+			_, err := m.DB.InsertNote(&noteExample, ctx)
 			if err != nil {
 				file.WriteTxt(err.Error())
 			}

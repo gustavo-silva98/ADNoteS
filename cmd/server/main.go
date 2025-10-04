@@ -93,31 +93,6 @@ func fn() {
 		}
 	}()
 	wg.Wait()
-
-	/*
-
-		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyH)
-		err := hk.Register()
-		if err != nil {
-			log.Fatalf("hotkey: Failed to register hotkey: %v", err)
-			return
-		}
-
-		log.Printf("hotkey: %v is registered\n", hk)
-		defer hk.Unregister()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-hk.Keydown():
-				log.Printf("hotkey: %v is down\n", hk)
-				executeTerminal()
-			case <-hk.Keyup():
-				log.Printf("hotkey: %v is up\n", hk)
-			}
-		}
-	*/
 }
 
 var clientCmd *exec.Cmd
