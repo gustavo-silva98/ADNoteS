@@ -59,7 +59,7 @@ func View(m model.Model) string {
 	case model.ConfirmKillServerState:
 		output = YesNoModalOverlay(m, m.ResultMessage)
 	case model.FinishServerState:
-		output = ResultEditModalOverlay(m, m.ResultMessage)
+		output = YesNoModalOverlay(m, m.ResultMessage)
 	}
 
 	return output

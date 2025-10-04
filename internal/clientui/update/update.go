@@ -94,7 +94,7 @@ func UpdateConfirmKillServerState(msg tea.Msg, m *model.Model) (model.Model, tea
 
 func updateResultKillServerState(_ tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	// retorna o cmd que vai enviar resultEditTimeoutMsg após 500ms
-	return *m, tea.Tick(800*time.Millisecond, func(t time.Time) tea.Msg {
+	return *m, tea.Tick(1000*time.Millisecond, func(t time.Time) tea.Msg {
 		return resultKillTimeoutMsg{}
 	})
 }
@@ -355,7 +355,7 @@ func updateConfirmEditNote(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 
 func updateResultEditState(_ tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	// retorna o cmd que vai enviar resultEditTimeoutMsg após 500ms
-	return *m, tea.Tick(1000*time.Millisecond, func(t time.Time) tea.Msg {
+	return *m, tea.Tick(800*time.Millisecond, func(t time.Time) tea.Msg {
 		return resultEditTimeoutMsg{}
 	})
 }

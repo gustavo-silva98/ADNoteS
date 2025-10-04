@@ -45,7 +45,12 @@ func MakeFolder(nameFolder string) bool {
 func BinCompiler(installFolder string, compiledName string, codeFolder string) bool {
 	compiled := true
 	clientPath := filepath.Join(installFolder, compiledName)
-	err := exec.Command("go", "build", "-o", clientPath, fmt.Sprintf("./cmd/%v", codeFolder)).Run()
+	var err error
+	if codeFolder == "server" && runtime.GOOS == "windows" {
+		err = exec.Command("go", "build", "-ldflags", "-H=windowsgui", "-o", clientPath, fmt.Sprintf("./cmd/%v", codeFolder)).Run()
+	} else {
+		err = exec.Command("go", "build", "-o", clientPath, fmt.Sprintf("./cmd/%v", codeFolder)).Run()
+	}
 	if err != nil {
 		fmt.Printf("Erro ao compilar binario: %v\n", err)
 		compiled = false
