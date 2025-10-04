@@ -61,7 +61,7 @@ func fn() {
 			case <-hk.Keydown():
 				fmt.Println("Foi pressionado o H")
 				executeTerminal("InsertNote")
-				<-hk.Keyup() // Espera soltar a tecla
+				<-hk.Keyup()
 			}
 			hk.Unregister()
 		}
@@ -92,6 +92,32 @@ func fn() {
 			hk.Unregister()
 		}
 	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+			// Registra a hotkey
+			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyK)
+			err := hk.Register()
+			if err != nil {
+				log.Println("Erro ao registrar hotkey K:", err)
+				continue
+			}
+
+			// Usa select para poder cancelar
+			select {
+			case <-done:
+				hk.Unregister()
+				return
+			case <-hk.Keydown():
+				fmt.Println("Foi pressionado o K")
+				executeTerminal("ExecuteServer")
+				<-hk.Keyup()
+			}
+			hk.Unregister()
+		}
+	}()
+
 	wg.Wait()
 }
 

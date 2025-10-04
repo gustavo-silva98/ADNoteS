@@ -23,6 +23,7 @@ const (
 	ConfirmEditSate
 	ResultEditState
 	DeleteNoteState
+	KillServerState
 )
 
 type Model struct {
