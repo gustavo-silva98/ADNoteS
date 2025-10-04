@@ -56,6 +56,10 @@ func View(m model.Model) string {
 		output = EditNoteView(m) + YesNoModalOverlay(m, "Do you want to delete?")
 	case model.ResultEditState:
 		output = EditNoteView(m) + ResultEditModalOverlay(m, m.ResultMessage)
+	case model.ConfirmKillServerState:
+		output = YesNoModalOverlay(m, m.ResultMessage)
+	case model.FinishServerState:
+		output = ResultEditModalOverlay(m, m.ResultMessage)
 	}
 
 	return output

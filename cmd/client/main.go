@@ -44,7 +44,7 @@ func main() {
 		case "ReadNote":
 			m.State = model.ReadNotesState
 		case "ExecuteServer":
-			m.State = model.KillServerState
+			m.State = model.ConfirmKillServerState
 		}
 		p := tea.NewProgram(&app{Model: m})
 		if _, err := p.Run(); err != nil {

@@ -3,6 +3,8 @@ package update
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -21,6 +23,7 @@ var ctx = context.Background()
 
 // Mensagem para timeout do resultado da edição
 type resultEditTimeoutMsg struct{}
+type resultKillTimeoutMsg struct{}
 
 const PageSize = 50
 
@@ -35,6 +38,8 @@ func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		m.HelpKeys = helpMaker(m)
 
 		return *m, nil
+	case resultKillTimeoutMsg:
+		return *m, tea.Quit
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.Keys.Read):
@@ -56,8 +61,42 @@ func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		return updateConfirmDeleteNote(msg, m)
 	case model.ResultEditState:
 		m.State = model.ReadNotesState
+	case model.ConfirmKillServerState:
+		return UpdateConfirmKillServerState(msg, m)
 	}
 	return *m, nil
+}
+
+func UpdateConfirmKillServerState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+
+	cmds = append(cmds, cmd)
+	m.ResultMessage = "Do you wanna terminate the server?"
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.Keys.Yes):
+			err := KillProcess("server")
+			if err != nil {
+				panic(fmt.Sprintf("erro ao finalizar Server %v", err))
+			}
+			m.State = model.FinishServerState
+			m.ResultMessage = "Server terminated"
+			return updateResultKillServerState(msg, m)
+		case key.Matches(msg, m.Keys.No):
+			m.Quitting = true
+			return *m, tea.Quit
+		}
+	}
+	return *m, tea.Batch(cmds...)
+}
+
+func updateResultKillServerState(_ tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	// retorna o cmd que vai enviar resultEditTimeoutMsg após 500ms
+	return *m, tea.Tick(800*time.Millisecond, func(t time.Time) tea.Msg {
+		return resultKillTimeoutMsg{}
+	})
 }
 
 func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
@@ -316,7 +355,7 @@ func updateConfirmEditNote(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 
 func updateResultEditState(_ tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	// retorna o cmd que vai enviar resultEditTimeoutMsg após 500ms
-	return *m, tea.Tick(800*time.Millisecond, func(t time.Time) tea.Msg {
+	return *m, tea.Tick(1000*time.Millisecond, func(t time.Time) tea.Msg {
 		return resultEditTimeoutMsg{}
 	})
 }
@@ -361,4 +400,16 @@ func titleFormatter(title string) string {
 		return splitStr[0:maxLineLenght] + "..."
 	}
 	return splitStr
+}
+
+func KillProcess(processName string) error {
+	switch runtime.GOOS {
+	case "windows":
+		processName += ".exe"
+		return exec.Command("taskkill", "/IM", processName, "/F").Run()
+	case "linux":
+		return exec.Command("pkill", "-f", processName).Run()
+	default:
+		return fmt.Errorf("sistema operacional não suportado: %v", runtime.GOOS)
+	}
 }
