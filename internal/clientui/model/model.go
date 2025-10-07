@@ -25,6 +25,7 @@ const (
 	DeleteNoteState
 	ConfirmKillServerState
 	FinishServerState
+	InitServerState
 )
 
 type Model struct {

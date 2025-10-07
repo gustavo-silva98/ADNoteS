@@ -24,7 +24,7 @@ var runState = struct {
 func main() { mainthread.Init(fn) }
 func fn() {
 	fmt.Println("Server iniciando...")
-
+	executeTerminal("InitServer")
 	// Captura sinais do sistema (como Ctrl+C)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

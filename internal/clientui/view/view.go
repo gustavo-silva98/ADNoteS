@@ -60,6 +60,8 @@ func View(m model.Model) string {
 		output = YesNoModalOverlay(m, m.ResultMessage)
 	case model.FinishServerState:
 		output = YesNoModalOverlay(m, m.ResultMessage)
+	case model.InitServerState:
+		output = InitServerView(m)
 	}
 
 	return output
@@ -106,6 +108,48 @@ func InsertNoteView(m model.Model) string {
 		logoStyle.Render(renderLogo()),
 		textStyle.Render(content),
 		helpStyle.Render(helpView),
+	)
+
+	output := lipgloss.Place(
+		m.TermWidth,
+		m.TermHeight,
+		lipgloss.Center, lipgloss.Top,
+		mainContent,
+	)
+
+	return output
+}
+
+func InitServerView(m model.Model) string {
+	logoHeight := m.TermHeight / 2
+	textHeight := m.TermHeight - logoHeight
+	helpheight := m.TermHeight - logoHeight - textHeight
+	elementWidth := m.TermWidth - (m.TermWidth / 10)
+
+	logoStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#6d40f3ff")).
+		Align(lipgloss.Center).
+		Width(elementWidth).
+		Height(logoHeight)
+
+	var textStyle = lipgloss.NewStyle().
+		Width(elementWidth).
+		Height(textHeight).
+		AlignHorizontal(lipgloss.Center)
+
+	content := "Texto."
+
+	var helpStyle = lipgloss.NewStyle().
+		AlignVertical(lipgloss.Bottom).
+		AlignHorizontal(lipgloss.Center).
+		Height(helpheight).
+		Width(elementWidth)
+
+	mainContent := lipgloss.JoinVertical(
+		lipgloss.Top,
+		logoStyle.Render(renderLogo()),
+		textStyle.Render(content),
+		helpStyle.Render(m.Help.ShortHelpView(m.HelpKeys)),
 	)
 
 	output := lipgloss.Place(

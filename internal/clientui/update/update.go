@@ -63,6 +63,8 @@ func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		m.State = model.ReadNotesState
 	case model.ConfirmKillServerState:
 		return UpdateConfirmKillServerState(msg, m)
+	case model.InitServerState:
+		return UpdateInitServerState(msg, m)
 	}
 	return *m, nil
 }
@@ -97,6 +99,19 @@ func updateResultKillServerState(_ tea.Msg, m *model.Model) (model.Model, tea.Cm
 	return *m, tea.Tick(1000*time.Millisecond, func(t time.Time) tea.Msg {
 		return resultKillTimeoutMsg{}
 	})
+}
+
+func UpdateInitServerState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.Keys.Quit):
+			return *m, tea.Quit
+		}
+	}
+	return *m, tea.Batch(cmds...)
 }
 
 func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
@@ -387,6 +402,10 @@ func helpMaker(m *model.Model) []key.Binding {
 		return []key.Binding{
 			b("Ctrl+s", "Save Note"),
 			b("q", "Quit Editing"),
+		}
+	case model.InitServerState:
+		return []key.Binding{
+			b("q", "Close Window"),
 		}
 	}
 	return []key.Binding{}
