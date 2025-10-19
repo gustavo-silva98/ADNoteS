@@ -121,7 +121,9 @@ func InsertNoteView(m model.Model) string {
 }
 
 func InitServerView(m model.Model) string {
-	logoHeight := m.TermHeight / 2
+	logoHeight := (m.TermHeight / 10) * 6
+	//file.WriteTxt(strconv.Itoa(m.TermHeight))
+	//file.WriteTxt(strconv.Itoa(logoHeight))
 	textHeight := m.TermHeight - logoHeight
 	helpheight := m.TermHeight - logoHeight - textHeight
 	elementWidth := m.TermWidth - (m.TermWidth / 10)
@@ -135,9 +137,20 @@ func InitServerView(m model.Model) string {
 	var textStyle = lipgloss.NewStyle().
 		Width(elementWidth).
 		Height(textHeight).
-		AlignHorizontal(lipgloss.Center)
+		AlignHorizontal(lipgloss.Center).
+		Foreground(lipgloss.Color("#909090"))
 
-	content := "Texto."
+	options := []string{
+		"Ctrl + Shift + H -> Save Note",
+		"Ctrl + Shift + R -> Read Note",
+		"Ctrl + Shift + K -> Kill Server",
+	}
+	options = KeysForInitState(options, 20)
+
+	optionsFormatted := SliceFormatter(options)
+	optionsFormatted = append([]string{"HotKeys"}, optionsFormatted...)
+
+	content := strings.Join(optionsFormatted, "\n\n\n")
 
 	var helpStyle = lipgloss.NewStyle().
 		AlignVertical(lipgloss.Bottom).
@@ -308,4 +321,35 @@ func ResultEditModalOverlay(m model.Model, question string) string {
 	)
 
 	return overlay + modal
+}
+
+func KeysForInitState(sliceKeys []string, totalLenght int) []string {
+	for i, key := range sliceKeys {
+		sliceKeys[i] = FormatCenterString(key, totalLenght)
+	}
+	return sliceKeys
+}
+
+func FormatCenterString(text string, lenght int) string {
+	if len(text) >= lenght {
+		return text
+	}
+
+	space := lenght - len(text)
+	leftSide := space / 2
+	rightSide := space - leftSide
+
+	return fmt.Sprintf("%v%v%v", strings.Repeat(" ", leftSide), text, strings.Repeat(" ", rightSide))
+}
+
+func SliceFormatter(sliceIn []string) []string {
+	var sliceResult []string
+	for i := 0; i <= len(sliceIn)-1; i += 2 {
+		if i+1 > len(sliceIn)-1 {
+			sliceResult = append(sliceResult, sliceIn[i])
+		} else {
+			sliceResult = append(sliceResult, fmt.Sprintf("%v   %v", sliceIn[i], sliceIn[i+1]))
+		}
+	}
+	return sliceResult
 }
