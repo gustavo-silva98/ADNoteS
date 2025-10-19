@@ -24,7 +24,7 @@ var runState = struct {
 func main() { mainthread.Init(fn) }
 func fn() {
 	fmt.Println("Server iniciando...")
-
+	executeTerminal("InitServer")
 	// Captura sinais do sistema (como Ctrl+C)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -61,7 +61,7 @@ func fn() {
 			case <-hk.Keydown():
 				fmt.Println("Foi pressionado o H")
 				executeTerminal("InsertNote")
-				<-hk.Keyup() // Espera soltar a tecla
+				<-hk.Keyup()
 			}
 			hk.Unregister()
 		}
@@ -92,32 +92,33 @@ func fn() {
 			hk.Unregister()
 		}
 	}()
-	wg.Wait()
 
-	/*
-
-		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyH)
-		err := hk.Register()
-		if err != nil {
-			log.Fatalf("hotkey: Failed to register hotkey: %v", err)
-			return
-		}
-
-		log.Printf("hotkey: %v is registered\n", hk)
-		defer hk.Unregister()
-
+	go func() {
+		defer wg.Done()
 		for {
+			// Registra a hotkey
+			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyK)
+			err := hk.Register()
+			if err != nil {
+				log.Println("Erro ao registrar hotkey K:", err)
+				continue
+			}
+
+			// Usa select para poder cancelar
 			select {
-			case <-ctx.Done():
+			case <-done:
+				hk.Unregister()
 				return
 			case <-hk.Keydown():
-				log.Printf("hotkey: %v is down\n", hk)
-				executeTerminal()
-			case <-hk.Keyup():
-				log.Printf("hotkey: %v is up\n", hk)
+				fmt.Println("Foi pressionado o K")
+				executeTerminal("ExecuteServer")
+				<-hk.Keyup()
 			}
+			hk.Unregister()
 		}
-	*/
+	}()
+
+	wg.Wait()
 }
 
 var clientCmd *exec.Cmd
