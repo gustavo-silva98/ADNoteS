@@ -49,11 +49,17 @@ func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SqliteHandler{
+	sql_db := &SqliteHandler{
 		DbPath:    pathString,
 		TableName: "notas",
 		DB:        db,
-	}, nil
+	}
+	err = sql_db.CreateFTSTable()
+	if err != nil {
+		return nil, err
+	}
+
+	return sql_db, nil
 }
 
 func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
@@ -166,4 +172,14 @@ func (s SqliteHandler) DeleteNoteRepository(ctx context.Context, noteId int) (in
 	}
 
 	return ra, nil
+}
+
+func (s SqliteHandler) CreateFTSTable() error {
+	createFTSQuery := `CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(note_text_fts);`
+
+	_, err := s.DB.Exec(createFTSQuery)
+	if err != nil {
+		return fmt.Errorf("erro ao criar tabela FTS: %v", err)
+	}
+	return nil
 }

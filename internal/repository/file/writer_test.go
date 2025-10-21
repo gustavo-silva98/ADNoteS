@@ -2,6 +2,8 @@ package file_test
 
 import (
 	"context"
+	"database/sql"
+	"log"
 	"testing"
 
 	"github.com/gustavo-silva98/adnotes/internal/repository/file"
@@ -127,4 +129,45 @@ func BenchmarkInsertNote(b *testing.B) {
 		_, _ = handler.InsertNote(note, ctx)
 	}
 
+}
+
+func FTSTableExists(db *file.SqliteHandler) (bool, error) {
+	query := `SELECT name FROM sqlite_master WHERE type='table' AND name='notes_fts'`
+
+	row := db.DB.QueryRow(query)
+	var name string
+	err := row.Scan(&name)
+
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func TestCreateFTSTable(t *testing.T) {
+	db, _ := sql.Open("sqlite", "teste_db.db")
+	handler := &file.SqliteHandler{
+		DbPath:    "teste_db.db",
+		TableName: "teste_notas",
+		DB:        db,
+	}
+
+	err := handler.CreateFTSTable()
+	if err != nil {
+		log.Fatalf("Erro ao criar tabela FTS: %v", err)
+	}
+	exists, err := FTSTableExists(handler)
+	if err != nil {
+		log.Fatalf("Erro ao verificar tabela FTS: %v", err)
+	}
+
+	if exists {
+		log.Println("Tabela FTS Criada com sucesso")
+	} else {
+		log.Println("Tabela FTS não foi criada")
+	}
 }
