@@ -58,6 +58,10 @@ func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = sql_db.CreateFTSTriggers(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return sql_db, nil
 }
@@ -180,6 +184,37 @@ func (s SqliteHandler) CreateFTSTable() error {
 	_, err := s.DB.Exec(createFTSQuery)
 	if err != nil {
 		return fmt.Errorf("erro ao criar tabela FTS: %v", err)
+	}
+	return nil
+}
+
+func (s SqliteHandler) CreateFTSTriggers(ctx context.Context) error {
+	triggerInsert := `
+	CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notas BEGIN 
+		INSERT INTO notes_fts(rowid,note_text_fts) VALUES (new.id, new.note_text);
+	END;`
+
+	triggerDelete := `
+	CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notas BEGIN 
+		DELETE FROM notes_fts WHERE rowid = old.id;
+	END;`
+
+	triggerUpdate := `
+	CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notas BEGIN 
+		DELETE FROM notes_fts WHERE rowid = old.id;
+		INSERT INTO notes_fts(rowid,note_text_fts) VALUES (new.id, new.note_text);
+	END;`
+
+	if _, err := s.DB.ExecContext(ctx, triggerInsert); err != nil {
+		return fmt.Errorf("erro ao criar trigger de INSERT: %v", err)
+	}
+
+	if _, err := s.DB.ExecContext(ctx, triggerDelete); err != nil {
+		return fmt.Errorf("erro ao criar trigger de DELETE: %v", err)
+	}
+
+	if _, err := s.DB.ExecContext(ctx, triggerUpdate); err != nil {
+		return fmt.Errorf("erro ao criar trigger de UPDATE: %v", err)
 	}
 	return nil
 }
