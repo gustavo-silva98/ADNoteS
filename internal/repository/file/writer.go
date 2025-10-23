@@ -15,6 +15,7 @@ type Writer interface {
 	QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error)
 	UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error)
 	DeleteNoteRepository(ctx context.Context, noteId int) (int64, error)
+	FullSearchNote(ctx context.Context, argQuery string) (map[int]Note, error)
 }
 
 type SqliteHandler struct {
@@ -217,4 +218,30 @@ func (s SqliteHandler) CreateFTSTriggers(ctx context.Context) error {
 		return fmt.Errorf("erro ao criar trigger de UPDATE: %v", err)
 	}
 	return nil
+}
+
+func (s SqliteHandler) FullSearchNote(ctx context.Context, argQuery string) (map[int]Note, error) {
+	rows, err := s.DB.QueryContext(
+		ctx,
+		`SELECT nt.id, nt.hour, fts.note_text_fts, nt.reminder, nt.plusreminder
+			FROM notes_fts fts
+			INNER JOIN notas nt ON nt.id = fts.rowid
+			WHERE fts.note_text_fts MATCH ?`, argQuery,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var queryMap = map[int]Note{}
+	for rows.Next() {
+		var note Note
+		err := rows.Scan(&note.ID, &note.Hour, &note.NoteText, &note.Reminder, &note.PlusReminder)
+		if err != nil {
+			return nil, err
+		}
+		queryMap[note.ID] = note
+	}
+
+	return queryMap, nil
 }

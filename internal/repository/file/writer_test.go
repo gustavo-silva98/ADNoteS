@@ -3,6 +3,7 @@ package file_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"testing"
 
@@ -260,4 +261,35 @@ func TestFTSTriggersIntegration(t *testing.T) {
 	if count != 0 {
 		t.Errorf("Trigger de DELETE não funcionou. Linhas restantes %v", count)
 	}
+}
+
+func TestFullSearchNote(t *testing.T) {
+	handler := setupTestDB(t)
+	ctx := context.Background()
+
+	// Testar trigger de INSERT
+	note := &file.Note{
+		Hour:         123456789,
+		NoteText:     "Teste trigger insert",
+		Reminder:     1,
+		PlusReminder: 2,
+	}
+
+	id, err := handler.InsertNote(note, ctx)
+	if err != nil {
+		t.Fatalf("Erro ao inserir nota: %v", err)
+	}
+	results, err := handler.FullSearchNote(ctx, "insert")
+	if err != nil {
+		t.Error("Falha ao realizar busca de notas")
+	}
+	val, ok := results[int(id)]
+	if !ok {
+		t.Error("Id não foi retornado ao realizar a Full Search")
+	}
+	if val.NoteText != note.NoteText {
+		t.Error("Texto da nota retornado pela busca está divergente do esperado")
+	}
+
+	fmt.Println(results[int(id)])
 }
