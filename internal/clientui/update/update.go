@@ -470,12 +470,12 @@ func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		case key.Matches(msg, m.Keys.Enter):
 			m.FullSearchBool = false
 		default:
-			if !m.TextAreaSearch.Focused() {
-				m.TextAreaSearch.Focus()
-				m.TextareaEdit.SetValue(" ")
-			}
-			if m.TextAreaSearch.Focused() {
+			switch {
+			case m.TextAreaSearch.Focused():
 				m.TextareaEdit.Blur()
+				m.TextareaEdit.SetValue("")
+			case !m.TextAreaSearch.Focused():
+				m.TextAreaSearch.Focus()
 				m.TextareaEdit.SetValue(" ")
 			}
 		}
