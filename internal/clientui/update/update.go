@@ -454,9 +454,13 @@ func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		l.SetShowHelp(false)
 		m.ListModel = l
 	}
-	if m.ListModel.SelectedItem() == nil {
+
+	if !m.FullSearchBool {
+		m.TextAreaSearch.Focus()
+		m.TextareaEdit.Blur()
 		m.TextareaEdit.SetValue("")
 	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -467,17 +471,12 @@ func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 			m.FullSearchBool = false
 		default:
 			if !m.TextAreaSearch.Focused() {
-				fmt.Printf("Foco?: %v", m.TextAreaSearch.Focused())
-				cmd = m.TextAreaSearch.Focus()
-				cmds = append(cmds, cmd)
+				m.TextAreaSearch.Focus()
 				m.TextareaEdit.SetValue(" ")
 			}
 			if m.TextAreaSearch.Focused() {
-				m.TextareaEdit.SetValue(" ")
-			}
-			if m.TextareaEdit.Focused() {
 				m.TextareaEdit.Blur()
-				m.TextareaEdit.SetValue("")
+				m.TextareaEdit.SetValue(" ")
 			}
 		}
 	}
