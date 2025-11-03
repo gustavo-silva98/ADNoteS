@@ -62,6 +62,8 @@ func View(m model.Model) string {
 		output = YesNoModalOverlay(m, m.ResultMessage)
 	case model.InitServerState:
 		output = InitServerView(m)
+	case model.FullSearchNoteState:
+		output = FullSearchNoteView(m)
 	}
 
 	return output
@@ -352,4 +354,46 @@ func SliceFormatter(sliceIn []string) []string {
 		}
 	}
 	return sliceResult
+}
+
+func FullSearchNoteView(m model.Model) string {
+	listWidth := m.TermWidth / 2
+	editorWidth := m.TermWidth - listWidth
+
+	searchBoxHeight := 3
+	listHeight := 5
+
+	editBoxHeight := m.TermHeight - 3
+	helpHeight := 3
+
+	var textStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7e40fa")).
+		Width(listWidth).
+		Height(searchBoxHeight)
+
+	listStyle := lipgloss.NewStyle().
+		Width(listWidth).
+		Height(listHeight)
+
+	editorStyle := lipgloss.NewStyle().
+		Width(editorWidth).
+		Height(editBoxHeight).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7e40faff"))
+
+	helpStyle := lipgloss.NewStyle().
+		AlignVertical(lipgloss.Bottom).
+		AlignHorizontal(lipgloss.Center).
+		Width(m.TermWidth).
+		Height(helpHeight)
+
+	searchBox := textStyle.Render(m.TextAreaSearch.View())
+	list := listStyle.Render(m.ListModel.View())
+	editor := editorStyle.Render(m.TextareaEdit.View())
+	leftSide := lipgloss.JoinVertical(lipgloss.Top, searchBox, list)
+	horizontal := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, editor)
+	output := lipgloss.JoinVertical(lipgloss.Top, horizontal, helpStyle.Render(m.Help.ShortHelpView(m.HelpKeys)))
+
+	return output
 }

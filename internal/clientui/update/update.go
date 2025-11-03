@@ -65,6 +65,8 @@ func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		return UpdateConfirmKillServerState(msg, m)
 	case model.InitServerState:
 		return UpdateInitServerState(msg, m)
+	case model.FullSearchNoteState:
+		return UpdateSearchNotes(msg, m)
 	}
 	return *m, nil
 }
@@ -141,6 +143,8 @@ func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 			if m.Textarea.Focused() {
 				m.Textarea.Blur()
 			}
+		case key.Matches(msg, m.Keys.FullSearch):
+			m.State = model.FullSearchNoteState
 		case key.Matches(msg, m.Keys.Quit):
 			m.Quitting = true
 			return *m, tea.Quit
@@ -431,4 +435,57 @@ func KillProcess(processName string) error {
 	default:
 		return fmt.Errorf("sistema operacional não suportado: %v", runtime.GOOS)
 	}
+}
+
+func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+	//file.WriteTxt(fmt.Sprintf("Foco?: %v", m.TextAreaSearch.Focused()))
+	if len(m.ItemList) == 0 {
+		m.TextAreaSearch.SetWidth(m.TermWidth/2 - 4)
+		m.TextAreaSearch.SetHeight(m.TermHeight / 5)
+		m.TextAreaSearch.Focus()
+		m.TextAreaSearch.Placeholder = "Digite sua busca aqui..."
+		m.ItemList = queryMapNotes(m)
+		d := list.NewDefaultDelegate()
+		l := list.New(m.ItemList, d, m.TermWidth/2, m.TermHeight-10)
+		l.Styles.Title = l.Styles.Title.Background(lipgloss.Color("#9D2EB0")).Foreground(lipgloss.Color("#E0D9F6"))
+		l.Title = "Resultados da Busca"
+		l.SetShowHelp(false)
+		m.ListModel = l
+	}
+	if m.ListModel.SelectedItem() == nil {
+		m.TextareaEdit.SetValue("")
+	}
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.Keys.Quit):
+			m.Quitting = true
+			return *m, tea.Quit
+		case key.Matches(msg, m.Keys.Enter):
+			m.FullSearchBool = false
+		default:
+			if !m.TextAreaSearch.Focused() {
+				fmt.Printf("Foco?: %v", m.TextAreaSearch.Focused())
+				cmd = m.TextAreaSearch.Focus()
+				cmds = append(cmds, cmd)
+				m.TextareaEdit.SetValue(" ")
+			}
+			if m.TextAreaSearch.Focused() {
+				m.TextareaEdit.SetValue(" ")
+			}
+			if m.TextareaEdit.Focused() {
+				m.TextareaEdit.Blur()
+				m.TextareaEdit.SetValue("")
+			}
+		}
+	}
+
+	m.TextAreaSearch, cmd = m.TextAreaSearch.Update(msg)
+	cmds = append(cmds, cmd)
+	m.ListModel, cmd = m.ListModel.Update(msg)
+	cmds = append(cmds, cmd)
+	return *m, tea.Batch(cmds...)
+
 }

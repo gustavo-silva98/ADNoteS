@@ -18,6 +18,7 @@ type KeyMap struct {
 	Yes        key.Binding
 	No         key.Binding
 	Delete     key.Binding
+	FullSearch key.Binding
 }
 
 var Default = KeyMap{
@@ -34,6 +35,7 @@ var Default = KeyMap{
 	Yes:        key.NewBinding(key.WithKeys("y", "Y"), key.WithHelp("y", "Yes")),
 	No:         key.NewBinding(key.WithKeys("n", "N"), key.WithHelp("n", "No")),
 	Delete:     key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "Delete Note")),
+	FullSearch: key.NewBinding(key.WithKeys("alt+s"), key.WithHelp("alt+s", "Advanced Search")),
 }
 
 var ReadNoteKeys = KeyMap{

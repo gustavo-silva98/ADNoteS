@@ -26,6 +26,7 @@ const (
 	ConfirmKillServerState
 	FinishServerState
 	InitServerState
+	FullSearchNoteState
 )
 
 type Model struct {
@@ -52,6 +53,8 @@ type Model struct {
 	ResultMessage   string
 	TermHeight      int
 	TermWidth       int
+	TextAreaSearch  textarea.Model
+	FullSearchBool  bool
 }
 
 func NewTextAreaEdit() textarea.Model {
@@ -125,5 +128,6 @@ func New() Model {
 		DB:             sql,
 		CurrentPage:    1,
 		TextareaEdit:   textEdit,
+		TextAreaSearch: textEdit,
 	}
 }
