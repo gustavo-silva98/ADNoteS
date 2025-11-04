@@ -34,7 +34,7 @@ func renderLogo() string {
 			Align(lipgloss.Center)
 		rendered += style.Render(line) + "\n"
 	}
-	return rendered
+	return fmt.Sprintf("\n\n%v", rendered)
 }
 
 func View(m model.Model) string {
@@ -70,12 +70,7 @@ func View(m model.Model) string {
 }
 
 func InsertNoteView(m model.Model) string {
-	/*
-		termWid, termHeight, err := term.GetSize(os.Stdout.Fd())
-		if err != nil {
-			return ""
-		}
-	*/
+
 	logoHeight := m.TermHeight / 3
 	textHeight := m.TermHeight / 2
 	helpheight := m.TermHeight - logoHeight - textHeight
@@ -223,8 +218,6 @@ func YesNoModalOverlay(m model.Model, question string) string {
 	overlay := lipgloss.NewStyle().
 		Width(m.TermWidth).
 		Height(m.TermHeight).
-		Background(lipgloss.Color("#222")).
-		// Use Faint para simular transparência
 		Faint(true).
 		Render(strings.Repeat(" ", m.TermWidth*m.TermHeight/2))
 
@@ -282,7 +275,6 @@ func ResultEditModalOverlay(m model.Model, question string) string {
 	overlay := lipgloss.NewStyle().
 		Width(m.TermWidth).
 		Height(m.TermHeight).
-		Background(lipgloss.Color("#22222265")).
 		Faint(true).
 		Render(strings.Repeat(" ", m.TermWidth*m.TermHeight/2))
 
@@ -325,9 +317,28 @@ func ResultEditModalOverlay(m model.Model, question string) string {
 
 func KeysForInitState(sliceKeys []string, totalLenght int) []string {
 	for i, key := range sliceKeys {
-		sliceKeys[i] = FormatCenterString(key, totalLenght)
+		if i/2 > 0 {
+			sliceKeys[i] = FormatRightString(key, totalLenght)
+		}
+		sliceKeys[i] = FormatLeftString(key, totalLenght)
 	}
 	return sliceKeys
+}
+
+func FormatRightString(text string, lenght int) string {
+	if len(text) >= lenght {
+		return text
+	}
+	space := strings.Repeat(" ", lenght-len(text))
+	return fmt.Sprintf("%v%v", space, text)
+}
+
+func FormatLeftString(text string, lenght int) string {
+	if len(text) >= lenght {
+		return text
+	}
+	space := strings.Repeat(" ", lenght-len(text))
+	return fmt.Sprintf("%v%v", text, space)
 }
 
 func FormatCenterString(text string, lenght int) string {
