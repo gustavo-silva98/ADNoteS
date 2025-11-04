@@ -221,6 +221,10 @@ func (s SqliteHandler) CreateFTSTriggers(ctx context.Context) error {
 }
 
 func (s SqliteHandler) FullSearchNote(ctx context.Context, argQuery string) (map[int]Note, error) {
+	if argQuery != "" {
+		argQuery = argQuery + "*"
+	}
+
 	rows, err := s.DB.QueryContext(
 		ctx,
 		`SELECT nt.id, nt.hour, fts.note_text_fts, nt.reminder, nt.plusreminder
