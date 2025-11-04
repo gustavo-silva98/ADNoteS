@@ -34,7 +34,7 @@ func renderLogo() string {
 			Align(lipgloss.Center)
 		rendered += style.Render(line) + "\n"
 	}
-	return rendered
+	return fmt.Sprintf("\n\n%v", rendered)
 }
 
 func View(m model.Model) string {
@@ -59,21 +59,18 @@ func View(m model.Model) string {
 	case model.ConfirmKillServerState:
 		output = YesNoModalOverlay(m, m.ResultMessage)
 	case model.FinishServerState:
-		output = YesNoModalOverlay(m, m.ResultMessage)
+		output = ResultEditModalOverlay(m, m.ResultMessage)
 	case model.InitServerState:
 		output = InitServerView(m)
+	case model.FullSearchNoteState:
+		output = FullSearchNoteView(m)
 	}
 
 	return output
 }
 
 func InsertNoteView(m model.Model) string {
-	/*
-		termWid, termHeight, err := term.GetSize(os.Stdout.Fd())
-		if err != nil {
-			return ""
-		}
-	*/
+
 	logoHeight := m.TermHeight / 3
 	textHeight := m.TermHeight / 2
 	helpheight := m.TermHeight - logoHeight - textHeight
@@ -101,13 +98,12 @@ func InsertNoteView(m model.Model) string {
 		"Digite sua anotação abaixo. \n\n%s",
 		m.Textarea.View(),
 	)
-	helpView := m.Help.View(m.Keys)
 
 	mainContent := lipgloss.JoinVertical(
 		lipgloss.Top,
 		logoStyle.Render(renderLogo()),
 		textStyle.Render(content),
-		helpStyle.Render(helpView),
+		helpStyle.Render(m.Help.ShortHelpView(m.HelpKeys)),
 	)
 
 	output := lipgloss.Place(
@@ -122,8 +118,6 @@ func InsertNoteView(m model.Model) string {
 
 func InitServerView(m model.Model) string {
 	logoHeight := (m.TermHeight / 10) * 6
-	//file.WriteTxt(strconv.Itoa(m.TermHeight))
-	//file.WriteTxt(strconv.Itoa(logoHeight))
 	textHeight := m.TermHeight - logoHeight
 	helpheight := m.TermHeight - logoHeight - textHeight
 	elementWidth := m.TermWidth - (m.TermWidth / 10)
@@ -144,6 +138,7 @@ func InitServerView(m model.Model) string {
 		"Ctrl + Shift + H -> Save Note",
 		"Ctrl + Shift + R -> Read Note",
 		"Ctrl + Shift + K -> Kill Server",
+		"Ctrl + Shift + D -> Advanced Search",
 	}
 	options = KeysForInitState(options, 20)
 
@@ -223,8 +218,6 @@ func YesNoModalOverlay(m model.Model, question string) string {
 	overlay := lipgloss.NewStyle().
 		Width(m.TermWidth).
 		Height(m.TermHeight).
-		Background(lipgloss.Color("#222")).
-		// Use Faint para simular transparência
 		Faint(true).
 		Render(strings.Repeat(" ", m.TermWidth*m.TermHeight/2))
 
@@ -282,7 +275,6 @@ func ResultEditModalOverlay(m model.Model, question string) string {
 	overlay := lipgloss.NewStyle().
 		Width(m.TermWidth).
 		Height(m.TermHeight).
-		Background(lipgloss.Color("#22222265")).
 		Faint(true).
 		Render(strings.Repeat(" ", m.TermWidth*m.TermHeight/2))
 
@@ -325,9 +317,28 @@ func ResultEditModalOverlay(m model.Model, question string) string {
 
 func KeysForInitState(sliceKeys []string, totalLenght int) []string {
 	for i, key := range sliceKeys {
-		sliceKeys[i] = FormatCenterString(key, totalLenght)
+		if i/2 > 0 {
+			sliceKeys[i] = FormatRightString(key, totalLenght)
+		}
+		sliceKeys[i] = FormatLeftString(key, totalLenght)
 	}
 	return sliceKeys
+}
+
+func FormatRightString(text string, lenght int) string {
+	if len(text) >= lenght {
+		return text
+	}
+	space := strings.Repeat(" ", lenght-len(text))
+	return fmt.Sprintf("%v%v", space, text)
+}
+
+func FormatLeftString(text string, lenght int) string {
+	if len(text) >= lenght {
+		return text
+	}
+	space := strings.Repeat(" ", lenght-len(text))
+	return fmt.Sprintf("%v%v", text, space)
 }
 
 func FormatCenterString(text string, lenght int) string {
@@ -352,4 +363,47 @@ func SliceFormatter(sliceIn []string) []string {
 		}
 	}
 	return sliceResult
+}
+
+func FullSearchNoteView(m model.Model) string {
+	listWidth := m.TermWidth / 2
+	editorWidth := listWidth - listWidth/10
+
+	searchBoxHeight := 1
+	listHeight := 5
+
+	editBoxHeight := m.TermHeight - 3
+	helpHeight := 3
+
+	var textStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7e40fa")).
+		Width(listWidth).
+		Height(searchBoxHeight).
+		MarginBottom(1)
+
+	listStyle := lipgloss.NewStyle().
+		Width(listWidth).
+		Height(listHeight)
+
+	editorStyle := lipgloss.NewStyle().
+		Width(editorWidth).
+		Height(editBoxHeight).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#7e40faff"))
+
+	helpStyle := lipgloss.NewStyle().
+		AlignVertical(lipgloss.Bottom).
+		AlignHorizontal(lipgloss.Center).
+		Width(m.TermWidth).
+		Height(helpHeight)
+
+	searchBox := textStyle.Render(m.TextAreaSearch.View())
+	list := listStyle.Render(m.ListModel.View())
+	editor := editorStyle.Render(m.TextareaEdit.View())
+	leftSide := lipgloss.JoinVertical(lipgloss.Top, searchBox, list)
+	horizontal := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, editor)
+	output := lipgloss.JoinVertical(lipgloss.Top, horizontal, helpStyle.Render(m.Help.ShortHelpView(m.HelpKeys)))
+
+	return output
 }

@@ -24,6 +24,7 @@ var ctx = context.Background()
 // Mensagem para timeout do resultado da edição
 type resultEditTimeoutMsg struct{}
 type resultKillTimeoutMsg struct{}
+type fullSearchDebounceMsg struct{}
 
 const PageSize = 50
 
@@ -65,6 +66,8 @@ func Update(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		return UpdateConfirmKillServerState(msg, m)
 	case model.InitServerState:
 		return UpdateInitServerState(msg, m)
+	case model.FullSearchNoteState:
+		return UpdateSearchNotes(msg, m)
 	}
 	return *m, nil
 }
@@ -141,6 +144,8 @@ func updateInsertNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 			if m.Textarea.Focused() {
 				m.Textarea.Blur()
 			}
+		case key.Matches(msg, m.Keys.FullSearch):
+			m.State = model.FullSearchNoteState
 		case key.Matches(msg, m.Keys.Quit):
 			m.Quitting = true
 			return *m, tea.Quit
@@ -254,6 +259,8 @@ func updateReadNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 			m.State = model.InsertNoteState
 		case key.Matches(msg, m.Keys.Delete):
 			m.State = model.DeleteNoteState
+		case key.Matches(msg, m.Keys.FullSearch):
+			m.State = model.FullSearchNoteState
 		case key.Matches(msg, m.Keys.Enter):
 			// Ao entrar no modo de edição, inicialize e foque o TextareaEdit
 			m.State = model.EditNoteSate
@@ -387,25 +394,33 @@ func helpMaker(m *model.Model) []key.Binding {
 	switch m.State {
 	case model.InsertNoteState:
 		return []key.Binding{
-			b("Ctrl+s", "Save and Quit"),
-			b("Ctrl+r", "Read Notes"),
-			b("q", "Quit"),
+			b("Ctrl + s", "Save and Quit"),
+			b("Ctrl + r", "Read Notes"),
+			b("Ctrl + q", "Quit"),
+			b("Ctrl + a", "Advanced Search"),
 		}
 	case model.ReadNotesState:
 		return []key.Binding{
-			b("Alt + ←", "Return"),
+			b("Alt + ←", "Insert Note"),
 			b("Enter", "Edit Note"),
-			b("Ctrl+d", "Delete Note"),
-			b("q", "Quit"),
+			b("Ctrl + a", "Advanced Search"),
+			b("Ctrl + d", "Delete Note"),
+			b("Ctrl + q", "Quit"),
 		}
 	case model.EditNoteSate:
 		return []key.Binding{
-			b("Ctrl+s", "Save Note"),
-			b("q", "Quit Editing"),
+			b("Ctrl + s", "Save Note"),
+			b("Ctrl + q", "Quit Editing"),
 		}
 	case model.InitServerState:
 		return []key.Binding{
-			b("q", "Close Window"),
+			b("Ctrl + q", "Close Window"),
+		}
+	case model.FullSearchNoteState:
+		return []key.Binding{
+			b("Ctrl + q", "Close Window"),
+			b("Ctrl + r", "Read Notes"),
+			b("Alt + ←", "Insert Note"),
 		}
 	}
 	return []key.Binding{}
@@ -431,4 +446,128 @@ func KillProcess(processName string) error {
 	default:
 		return fmt.Errorf("sistema operacional não suportado: %v", runtime.GOOS)
 	}
+}
+
+func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+
+	oldValue := m.TextAreaSearch.Value()
+	m.TextAreaSearch.SetWidth(m.TermWidth/2 - 4)
+	m.TextAreaSearch.SetHeight(1)
+
+	if len(m.ItemList) == 0 {
+		d := list.NewDefaultDelegate()
+		c := lipgloss.Color("#FE02FF")
+		c1 := lipgloss.Color("#7e40fa")
+		d.Styles.SelectedTitle = d.Styles.SelectedTitle.Foreground(c).BorderLeftForeground(c).Bold(true)
+		d.Styles.NormalTitle = d.Styles.NormalTitle.Foreground(lipgloss.Color("#9a6bf8ff")).Faint(true)
+		d.Styles.SelectedDesc = d.Styles.SelectedDesc.Foreground(c1).BorderLeftForeground(c)
+		d.Styles.NormalDesc = d.Styles.NormalDesc.Foreground(lipgloss.Color("#f2c9faff")).Faint(true)
+		l := list.New(m.ItemList, d, m.TermWidth/3, m.TermHeight-10)
+		l.Styles.Title = l.Styles.Title.Background(lipgloss.Color("#9D2EB0")).Foreground(lipgloss.Color("#E0D9F6"))
+		l.Title = "Resultados da Busca"
+		l.SetShowHelp(false)
+		m.ListModel = l
+	}
+
+	if !m.FullSearchBool {
+		m.TextAreaSearch.Placeholder = "Digite sua busca aqui..."
+		m.TextAreaSearch.Focus()
+		m.TextareaEdit.Blur()
+		m.TextareaEdit.SetValue("")
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.Keys.Quit):
+			m.Quitting = true
+			return *m, tea.Quit
+		case key.Matches(msg, m.Keys.PageBack):
+			if m.FullSearchTimerCancel != nil {
+				close(m.FullSearchTimerCancel)
+			}
+			m.State = model.ReadNotesState
+		case key.Matches(msg, m.Keys.Read):
+			m.State = model.ReadNotesState
+		default:
+			m.FullSearchBool = false
+			if m.TextAreaSearch.Value() != m.FullSearchQuery {
+				m.FullSearchQuery = m.TextAreaSearch.Value()
+				cmds = append(cmds, debouncerFullSearchNote(m, 500*time.Millisecond))
+			}
+			switch {
+			case !m.TextAreaSearch.Focused():
+				m.TextAreaSearch.Focus()
+				m.TextareaEdit.SetValue("")
+				m.TextareaEdit.Blur()
+			}
+		}
+	case fullSearchDebounceMsg:
+		m.FullSearchBool = true
+		m.FullSearchTimerCancel = nil
+		m.ItemList = FullSearchQueryMapNotes(m)
+		m.ListModel.SetItems(m.ItemList)
+	}
+
+	m.TextAreaSearch, cmd = m.TextAreaSearch.Update(msg)
+	cmds = append(cmds, cmd)
+
+	newValue := m.TextAreaSearch.Value()
+	if newValue != oldValue && newValue != m.FullSearchQuery {
+		m.FullSearchQuery = newValue
+		cmds = append(cmds, debouncerFullSearchNote(m, 500*time.Millisecond))
+	}
+
+	m.ListModel, cmd = m.ListModel.Update(msg)
+	cmds = append(cmds, cmd)
+	return *m, tea.Batch(cmds...)
+}
+
+func debouncerFullSearchNote(m *model.Model, d time.Duration) tea.Cmd {
+	if m.FullSearchTimerCancel != nil {
+		close(m.FullSearchTimerCancel)
+	}
+	cancel := make(chan struct{})
+	m.FullSearchTimerCancel = cancel
+	return func() tea.Msg {
+		t := time.NewTimer(d)
+		defer t.Stop()
+		select {
+		case <-t.C:
+			return fullSearchDebounceMsg{}
+		case <-cancel:
+			return nil
+		}
+	}
+}
+
+func FullSearchQueryMapNotes(m *model.Model) []list.Item {
+	mapQuery, err := m.DB.FullSearchNote(m.Context, m.FullSearchQuery)
+	if err != nil {
+		return []list.Item{}
+	}
+	m.MapNotes = mapQuery
+
+	var ids []int
+	for id := range m.MapNotes {
+		ids = append(ids, id)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(ids)))
+
+	items := make([]list.Item, 0, len(mapQuery))
+	for _, id := range ids {
+		note := m.MapNotes[id]
+		noteTimestamp := time.Unix(note.Hour, 0)
+		items = append(items, noteItem{
+			title:        titleFormatter(note.NoteText),
+			desc:         fmt.Sprintf("%v/%d/%v %v:%02d", noteTimestamp.Day(), noteTimestamp.Month(), noteTimestamp.Year(), noteTimestamp.Hour(), noteTimestamp.Minute()),
+			NoteText:     note.NoteText,
+			Id:           id,
+			Reminder:     0,
+			PlusReminder: 0,
+		})
+	}
+	return items
 }

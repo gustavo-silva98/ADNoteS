@@ -49,7 +49,7 @@ func fn() {
 			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyH)
 			err := hk.Register()
 			if err != nil {
-				log.Println("Erro ao registrar hotkey H:", err)
+				log.Println("Erro ao registrar hotkey:", err)
 				continue
 			}
 
@@ -59,7 +59,6 @@ func fn() {
 				hk.Unregister()
 				return
 			case <-hk.Keydown():
-				fmt.Println("Foi pressionado o H")
 				executeTerminal("InsertNote")
 				<-hk.Keyup()
 			}
@@ -96,11 +95,12 @@ func fn() {
 	go func() {
 		defer wg.Done()
 		for {
+
 			// Registra a hotkey
-			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyK)
+			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyD)
 			err := hk.Register()
 			if err != nil {
-				log.Println("Erro ao registrar hotkey K:", err)
+				log.Println("Erro ao registrar hotkey A:", err)
 				continue
 			}
 
@@ -110,7 +110,29 @@ func fn() {
 				hk.Unregister()
 				return
 			case <-hk.Keydown():
-				fmt.Println("Foi pressionado o K")
+				executeTerminal("AdvancedSearch")
+				<-hk.Keyup() // Espera soltar a tecla
+			}
+			hk.Unregister()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+			// Registra a hotkey
+			hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyK)
+			err := hk.Register()
+			if err != nil {
+				log.Println("Erro ao registrar hotkey K:", err)
+				continue
+			}
+
+			select {
+			case <-done:
+				hk.Unregister()
+				return
+			case <-hk.Keydown():
 				executeTerminal("ExecuteServer")
 				<-hk.Keyup()
 			}
@@ -127,7 +149,6 @@ func runClient(command string, arg string) {
 	log.Println("Processo não está rodando. Iniciando...")
 
 	clientCmd = exec.Command(command, arg)
-	//file.WriteTxt(fmt.Sprint(clientCmd.Args))
 	if err := clientCmd.Start(); err != nil {
 		log.Printf("Erro ao iniciar o comando: %v", err)
 		return

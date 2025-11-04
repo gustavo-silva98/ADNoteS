@@ -15,6 +15,7 @@ type Writer interface {
 	QueryNote(limit int, offset int, ctx context.Context) (map[int]Note, error)
 	UpdateEditNoteRepository(ctx context.Context, note Note) (int64, error)
 	DeleteNoteRepository(ctx context.Context, noteId int) (int64, error)
+	FullSearchNote(ctx context.Context, argQuery string) (map[int]Note, error)
 }
 
 type SqliteHandler struct {
@@ -49,11 +50,21 @@ func InitDB(pathString string, ctx context.Context) (*SqliteHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SqliteHandler{
+	sql_db := &SqliteHandler{
 		DbPath:    pathString,
 		TableName: "notas",
 		DB:        db,
-	}, nil
+	}
+	err = sql_db.CreateFTSTable()
+	if err != nil {
+		return nil, err
+	}
+	err = sql_db.CreateFTSTriggers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return sql_db, nil
 }
 
 func (s SqliteHandler) InsertNote(n *Note, ctx context.Context) (int64, error) {
@@ -166,4 +177,75 @@ func (s SqliteHandler) DeleteNoteRepository(ctx context.Context, noteId int) (in
 	}
 
 	return ra, nil
+}
+
+func (s SqliteHandler) CreateFTSTable() error {
+	createFTSQuery := `CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(note_text_fts);`
+
+	_, err := s.DB.Exec(createFTSQuery)
+	if err != nil {
+		return fmt.Errorf("erro ao criar tabela FTS: %v", err)
+	}
+	return nil
+}
+
+func (s SqliteHandler) CreateFTSTriggers(ctx context.Context) error {
+	triggerInsert := `
+	CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notas BEGIN 
+		INSERT INTO notes_fts(rowid,note_text_fts) VALUES (new.id, new.note_text);
+	END;`
+
+	triggerDelete := `
+	CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notas BEGIN 
+		DELETE FROM notes_fts WHERE rowid = old.id;
+	END;`
+
+	triggerUpdate := `
+	CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notas BEGIN 
+		DELETE FROM notes_fts WHERE rowid = old.id;
+		INSERT INTO notes_fts(rowid,note_text_fts) VALUES (new.id, new.note_text);
+	END;`
+
+	if _, err := s.DB.ExecContext(ctx, triggerInsert); err != nil {
+		return fmt.Errorf("erro ao criar trigger de INSERT: %v", err)
+	}
+
+	if _, err := s.DB.ExecContext(ctx, triggerDelete); err != nil {
+		return fmt.Errorf("erro ao criar trigger de DELETE: %v", err)
+	}
+
+	if _, err := s.DB.ExecContext(ctx, triggerUpdate); err != nil {
+		return fmt.Errorf("erro ao criar trigger de UPDATE: %v", err)
+	}
+	return nil
+}
+
+func (s SqliteHandler) FullSearchNote(ctx context.Context, argQuery string) (map[int]Note, error) {
+	if argQuery != "" {
+		argQuery = argQuery + "*"
+	}
+
+	rows, err := s.DB.QueryContext(
+		ctx,
+		`SELECT nt.id, nt.hour, fts.note_text_fts, nt.reminder, nt.plusreminder
+			FROM notes_fts fts
+			INNER JOIN notas nt ON nt.id = fts.rowid
+			WHERE fts.note_text_fts MATCH ?`, argQuery,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var queryMap = map[int]Note{}
+	for rows.Next() {
+		var note Note
+		err := rows.Scan(&note.ID, &note.Hour, &note.NoteText, &note.Reminder, &note.PlusReminder)
+		if err != nil {
+			return nil, err
+		}
+		queryMap[note.ID] = note
+	}
+
+	return queryMap, nil
 }

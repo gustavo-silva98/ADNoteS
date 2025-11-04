@@ -47,6 +47,8 @@ func main() {
 			m.State = model.ConfirmKillServerState
 		case "InitServer":
 			m.State = model.InitServerState
+		case "AdvancedSearch":
+			m.State = model.FullSearchNoteState
 		}
 		p := tea.NewProgram(&app{Model: m})
 		if _, err := p.Run(); err != nil {

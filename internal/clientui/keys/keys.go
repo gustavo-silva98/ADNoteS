@@ -18,6 +18,7 @@ type KeyMap struct {
 	Yes        key.Binding
 	No         key.Binding
 	Delete     key.Binding
+	FullSearch key.Binding
 }
 
 var Default = KeyMap{
@@ -25,21 +26,15 @@ var Default = KeyMap{
 	Esc:        key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "unfocus textarea")),
 	Up:         key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("^k", "Move Up")),
 	Help:       key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
-	Quit:       key.NewBinding(key.WithKeys("q", "esc", "ctrl+q"), key.WithHelp("q", "quit")),
+	Quit:       key.NewBinding(key.WithKeys("ctrl+q", "esc", "ctrl+q"), key.WithHelp("Ctrl+q", "quit")),
 	Read:       key.NewBinding(key.WithKeys("ctrl+r"), key.WithHelp("ctrl+r", "Read notes")),
-	Back:       key.NewBinding(key.WithKeys("left"), key.WithHelp("left", "Get back")),
 	PageBack:   key.NewBinding(key.WithKeys("alt+left"), key.WithHelp("alt+left", "Page Back")),
 	PageFoward: key.NewBinding(key.WithKeys("alt+right"), key.WithHelp("alt+right", "Page Foward")),
 	Enter:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Enter Note")),
 	Yes:        key.NewBinding(key.WithKeys("y", "Y"), key.WithHelp("y", "Yes")),
 	No:         key.NewBinding(key.WithKeys("n", "N"), key.WithHelp("n", "No")),
 	Delete:     key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "Delete Note")),
-}
-
-var ReadNoteKeys = KeyMap{
-	PageBack: key.NewBinding(key.WithKeys("alt+left"), key.WithHelp("alt+left", "Return Home")),
-	Quit:     key.NewBinding(key.WithKeys("q", "esc", "ctrl+q"), key.WithHelp("q", "quit")),
-	Enter:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Enter Note")),
+	FullSearch: key.NewBinding(key.WithKeys("ctrl+a"), key.WithHelp("alt+s", "Advanced Search")),
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {

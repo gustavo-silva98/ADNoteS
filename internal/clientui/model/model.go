@@ -26,32 +26,37 @@ const (
 	ConfirmKillServerState
 	FinishServerState
 	InitServerState
+	FullSearchNoteState
 )
 
 type Model struct {
-	State           SessionState
-	Textarea        textarea.Model
-	Help            help.Model
-	Keys            keys.KeyMap
-	InputStyle      lipgloss.Style
-	Err             error
-	Quitting        bool
-	MapNotes        map[int]file.Note
-	IndexQuery      int
-	Context         context.Context
-	DB              file.Writer
-	TotalItemsNote  int
-	ListModel       list.Model
-	ItemList        []list.Item
-	CurrentPage     int
-	ViewpoerContent string
-	Ready           bool
-	TextareaEdit    textarea.Model
-	HelpKeys        []key.Binding
-	SelectedNote    list.Item
-	ResultMessage   string
-	TermHeight      int
-	TermWidth       int
+	State                 SessionState
+	Textarea              textarea.Model
+	Help                  help.Model
+	Keys                  keys.KeyMap
+	InputStyle            lipgloss.Style
+	Err                   error
+	Quitting              bool
+	MapNotes              map[int]file.Note
+	IndexQuery            int
+	Context               context.Context
+	DB                    file.Writer
+	TotalItemsNote        int
+	ListModel             list.Model
+	ItemList              []list.Item
+	CurrentPage           int
+	ViewpoerContent       string
+	Ready                 bool
+	TextareaEdit          textarea.Model
+	HelpKeys              []key.Binding
+	SelectedNote          list.Item
+	ResultMessage         string
+	TermHeight            int
+	TermWidth             int
+	TextAreaSearch        textarea.Model
+	FullSearchBool        bool
+	FullSearchQuery       string
+	FullSearchTimerCancel chan struct{}
 }
 
 func NewTextAreaEdit() textarea.Model {
@@ -98,6 +103,17 @@ func NewTextAreaEdit() textarea.Model {
 	return t
 }
 
+func NewTextAreaSearch() textarea.Model {
+	cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#DF21FF"))
+
+	t := textarea.New()
+	t.ShowLineNumbers = false
+	t.Cursor.Style = cursorStyle
+	t.KeyMap.DeleteWordBackward.SetEnabled(true)
+
+	return t
+}
+
 func New() Model {
 	ti := textarea.New()
 	ti.Placeholder = "Digite sua nota..."
@@ -109,21 +125,24 @@ func New() Model {
 	sql, _ := file.InitDB(dbPath, ctx)
 
 	textEdit := NewTextAreaEdit()
+	textareaSearch := NewTextAreaSearch()
 	firstIndex, err := sql.GetFirsIndexPage(ctx)
 	if err != nil {
 		file.WriteTxt("GET INDEX ERROR: " + err.Error())
 	}
 	return Model{
-		State:          InsertNoteState,
-		Textarea:       ti,
-		Help:           help.New(),
-		Keys:           keys.Default,
-		InputStyle:     lipgloss.NewStyle().Foreground(lipgloss.Color("#FF75B7")),
-		IndexQuery:     firstIndex,
-		TotalItemsNote: firstIndex,
-		Context:        ctx,
-		DB:             sql,
-		CurrentPage:    1,
-		TextareaEdit:   textEdit,
+		State:           InsertNoteState,
+		Textarea:        ti,
+		Help:            help.New(),
+		Keys:            keys.Default,
+		InputStyle:      lipgloss.NewStyle().Foreground(lipgloss.Color("#FF75B7")),
+		IndexQuery:      firstIndex,
+		TotalItemsNote:  firstIndex,
+		Context:         ctx,
+		DB:              sql,
+		CurrentPage:     1,
+		TextareaEdit:    textEdit,
+		TextAreaSearch:  textareaSearch,
+		FullSearchQuery: "",
 	}
 }
