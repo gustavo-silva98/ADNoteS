@@ -398,7 +398,7 @@ func helpMaker(m *model.Model) []key.Binding {
 		}
 	case model.ReadNotesState:
 		return []key.Binding{
-			b("Alt + ←", "Return"),
+			b("Alt + ←", "Insert Note"),
 			b("Enter", "Edit Note"),
 			b("Ctrl+d", "Delete Note"),
 			b("q", "Quit"),
@@ -411,6 +411,11 @@ func helpMaker(m *model.Model) []key.Binding {
 	case model.InitServerState:
 		return []key.Binding{
 			b("q", "Close Window"),
+		}
+	case model.FullSearchNoteState:
+		return []key.Binding{
+			b("q", "Close Window"),
+			b("Alt + ←", "Read Notes"),
 		}
 	}
 	return []key.Binding{}
@@ -443,13 +448,17 @@ func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	oldValue := m.TextAreaSearch.Value()
+	m.TextAreaSearch.SetWidth(m.TermWidth/2 - 4)
+	m.TextAreaSearch.SetHeight(1)
 
 	if len(m.ItemList) == 0 {
-		m.TextAreaSearch.SetWidth(m.TermWidth/2 - 4)
-		m.TextAreaSearch.SetHeight(m.TermHeight / 5)
-		m.TextAreaSearch.Focus()
-		m.TextAreaSearch.Placeholder = "Digite sua busca aqui..."
 		d := list.NewDefaultDelegate()
+		c := lipgloss.Color("#FE02FF")
+		c1 := lipgloss.Color("#7e40fa")
+		d.Styles.SelectedTitle = d.Styles.SelectedTitle.Foreground(c).BorderLeftForeground(c).Bold(true)
+		d.Styles.NormalTitle = d.Styles.NormalTitle.Foreground(lipgloss.Color("#9a6bf8ff")).Faint(true)
+		d.Styles.SelectedDesc = d.Styles.SelectedDesc.Foreground(c1).BorderLeftForeground(c)
+		d.Styles.NormalDesc = d.Styles.NormalDesc.Foreground(lipgloss.Color("#f2c9faff")).Faint(true)
 		l := list.New(m.ItemList, d, m.TermWidth/3, m.TermHeight-10)
 		l.Styles.Title = l.Styles.Title.Background(lipgloss.Color("#9D2EB0")).Foreground(lipgloss.Color("#E0D9F6"))
 		l.Title = "Resultados da Busca"
@@ -458,6 +467,7 @@ func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 	}
 
 	if !m.FullSearchBool {
+		m.TextAreaSearch.Placeholder = "Digite sua busca aqui..."
 		m.TextAreaSearch.Focus()
 		m.TextareaEdit.Blur()
 		m.TextareaEdit.SetValue("")
@@ -469,8 +479,11 @@ func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 		case key.Matches(msg, m.Keys.Quit):
 			m.Quitting = true
 			return *m, tea.Quit
-		case key.Matches(msg, m.Keys.Enter):
-			m.FullSearchBool = true
+		case key.Matches(msg, m.Keys.PageBack):
+			if m.FullSearchTimerCancel != nil {
+				close(m.FullSearchTimerCancel)
+			}
+			m.State = model.ReadNotesState
 		default:
 			m.FullSearchBool = false
 			if m.TextAreaSearch.Value() != m.FullSearchQuery {

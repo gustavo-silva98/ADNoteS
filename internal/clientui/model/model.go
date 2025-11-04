@@ -103,6 +103,17 @@ func NewTextAreaEdit() textarea.Model {
 	return t
 }
 
+func NewTextAreaSearch() textarea.Model {
+	cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#DF21FF"))
+
+	t := textarea.New()
+	t.ShowLineNumbers = false
+	t.Cursor.Style = cursorStyle
+	t.KeyMap.DeleteWordBackward.SetEnabled(true)
+
+	return t
+}
+
 func New() Model {
 	ti := textarea.New()
 	ti.Placeholder = "Digite sua nota..."
@@ -114,6 +125,7 @@ func New() Model {
 	sql, _ := file.InitDB(dbPath, ctx)
 
 	textEdit := NewTextAreaEdit()
+	textareaSearch := NewTextAreaSearch()
 	firstIndex, err := sql.GetFirsIndexPage(ctx)
 	if err != nil {
 		file.WriteTxt("GET INDEX ERROR: " + err.Error())
@@ -130,7 +142,7 @@ func New() Model {
 		DB:              sql,
 		CurrentPage:     1,
 		TextareaEdit:    textEdit,
-		TextAreaSearch:  textEdit,
+		TextAreaSearch:  textareaSearch,
 		FullSearchQuery: "",
 	}
 }

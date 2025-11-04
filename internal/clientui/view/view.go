@@ -59,7 +59,7 @@ func View(m model.Model) string {
 	case model.ConfirmKillServerState:
 		output = YesNoModalOverlay(m, m.ResultMessage)
 	case model.FinishServerState:
-		output = YesNoModalOverlay(m, m.ResultMessage)
+		output = ResultEditModalOverlay(m, m.ResultMessage)
 	case model.InitServerState:
 		output = InitServerView(m)
 	case model.FullSearchNoteState:
@@ -360,7 +360,7 @@ func FullSearchNoteView(m model.Model) string {
 	listWidth := m.TermWidth / 2
 	editorWidth := listWidth - listWidth/10
 
-	searchBoxHeight := 3
+	searchBoxHeight := 1
 	listHeight := 5
 
 	editBoxHeight := m.TermHeight - 3
@@ -370,7 +370,8 @@ func FullSearchNoteView(m model.Model) string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#7e40fa")).
 		Width(listWidth).
-		Height(searchBoxHeight)
+		Height(searchBoxHeight).
+		MarginBottom(1)
 
 	listStyle := lipgloss.NewStyle().
 		Width(listWidth).
