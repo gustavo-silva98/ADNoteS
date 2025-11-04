@@ -30,31 +30,33 @@ const (
 )
 
 type Model struct {
-	State           SessionState
-	Textarea        textarea.Model
-	Help            help.Model
-	Keys            keys.KeyMap
-	InputStyle      lipgloss.Style
-	Err             error
-	Quitting        bool
-	MapNotes        map[int]file.Note
-	IndexQuery      int
-	Context         context.Context
-	DB              file.Writer
-	TotalItemsNote  int
-	ListModel       list.Model
-	ItemList        []list.Item
-	CurrentPage     int
-	ViewpoerContent string
-	Ready           bool
-	TextareaEdit    textarea.Model
-	HelpKeys        []key.Binding
-	SelectedNote    list.Item
-	ResultMessage   string
-	TermHeight      int
-	TermWidth       int
-	TextAreaSearch  textarea.Model
-	FullSearchBool  bool
+	State                 SessionState
+	Textarea              textarea.Model
+	Help                  help.Model
+	Keys                  keys.KeyMap
+	InputStyle            lipgloss.Style
+	Err                   error
+	Quitting              bool
+	MapNotes              map[int]file.Note
+	IndexQuery            int
+	Context               context.Context
+	DB                    file.Writer
+	TotalItemsNote        int
+	ListModel             list.Model
+	ItemList              []list.Item
+	CurrentPage           int
+	ViewpoerContent       string
+	Ready                 bool
+	TextareaEdit          textarea.Model
+	HelpKeys              []key.Binding
+	SelectedNote          list.Item
+	ResultMessage         string
+	TermHeight            int
+	TermWidth             int
+	TextAreaSearch        textarea.Model
+	FullSearchBool        bool
+	FullSearchQuery       string
+	FullSearchTimerCancel chan struct{}
 }
 
 func NewTextAreaEdit() textarea.Model {
@@ -117,17 +119,18 @@ func New() Model {
 		file.WriteTxt("GET INDEX ERROR: " + err.Error())
 	}
 	return Model{
-		State:          InsertNoteState,
-		Textarea:       ti,
-		Help:           help.New(),
-		Keys:           keys.Default,
-		InputStyle:     lipgloss.NewStyle().Foreground(lipgloss.Color("#FF75B7")),
-		IndexQuery:     firstIndex,
-		TotalItemsNote: firstIndex,
-		Context:        ctx,
-		DB:             sql,
-		CurrentPage:    1,
-		TextareaEdit:   textEdit,
-		TextAreaSearch: textEdit,
+		State:           InsertNoteState,
+		Textarea:        ti,
+		Help:            help.New(),
+		Keys:            keys.Default,
+		InputStyle:      lipgloss.NewStyle().Foreground(lipgloss.Color("#FF75B7")),
+		IndexQuery:      firstIndex,
+		TotalItemsNote:  firstIndex,
+		Context:         ctx,
+		DB:              sql,
+		CurrentPage:     1,
+		TextareaEdit:    textEdit,
+		TextAreaSearch:  textEdit,
+		FullSearchQuery: "",
 	}
 }

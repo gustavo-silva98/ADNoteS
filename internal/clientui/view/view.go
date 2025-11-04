@@ -358,7 +358,7 @@ func SliceFormatter(sliceIn []string) []string {
 
 func FullSearchNoteView(m model.Model) string {
 	listWidth := m.TermWidth / 2
-	editorWidth := m.TermWidth - listWidth
+	editorWidth := listWidth - listWidth/10
 
 	searchBoxHeight := 3
 	listHeight := 5
