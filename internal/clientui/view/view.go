@@ -103,13 +103,12 @@ func InsertNoteView(m model.Model) string {
 		"Digite sua anotação abaixo. \n\n%s",
 		m.Textarea.View(),
 	)
-	helpView := m.Help.View(m.Keys)
 
 	mainContent := lipgloss.JoinVertical(
 		lipgloss.Top,
 		logoStyle.Render(renderLogo()),
 		textStyle.Render(content),
-		helpStyle.Render(helpView),
+		helpStyle.Render(m.Help.ShortHelpView(m.HelpKeys)),
 	)
 
 	output := lipgloss.Place(
@@ -124,8 +123,6 @@ func InsertNoteView(m model.Model) string {
 
 func InitServerView(m model.Model) string {
 	logoHeight := (m.TermHeight / 10) * 6
-	//file.WriteTxt(strconv.Itoa(m.TermHeight))
-	//file.WriteTxt(strconv.Itoa(logoHeight))
 	textHeight := m.TermHeight - logoHeight
 	helpheight := m.TermHeight - logoHeight - textHeight
 	elementWidth := m.TermWidth - (m.TermWidth / 10)
@@ -146,6 +143,7 @@ func InitServerView(m model.Model) string {
 		"Ctrl + Shift + H -> Save Note",
 		"Ctrl + Shift + R -> Read Note",
 		"Ctrl + Shift + K -> Kill Server",
+		"Ctrl + Shift + D -> Advanced Search",
 	}
 	options = KeysForInitState(options, 20)
 

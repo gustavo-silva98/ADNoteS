@@ -259,6 +259,8 @@ func updateReadNoteState(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 			m.State = model.InsertNoteState
 		case key.Matches(msg, m.Keys.Delete):
 			m.State = model.DeleteNoteState
+		case key.Matches(msg, m.Keys.FullSearch):
+			m.State = model.FullSearchNoteState
 		case key.Matches(msg, m.Keys.Enter):
 			// Ao entrar no modo de edição, inicialize e foque o TextareaEdit
 			m.State = model.EditNoteSate
@@ -392,30 +394,33 @@ func helpMaker(m *model.Model) []key.Binding {
 	switch m.State {
 	case model.InsertNoteState:
 		return []key.Binding{
-			b("Ctrl+s", "Save and Quit"),
-			b("Ctrl+r", "Read Notes"),
-			b("q", "Quit"),
+			b("Ctrl + s", "Save and Quit"),
+			b("Ctrl + r", "Read Notes"),
+			b("Ctrl + q", "Quit"),
+			b("Ctrl + a", "Advanced Search"),
 		}
 	case model.ReadNotesState:
 		return []key.Binding{
 			b("Alt + ←", "Insert Note"),
 			b("Enter", "Edit Note"),
-			b("Ctrl+d", "Delete Note"),
-			b("q", "Quit"),
+			b("Ctrl + a", "Advanced Search"),
+			b("Ctrl + d", "Delete Note"),
+			b("Ctrl + q", "Quit"),
 		}
 	case model.EditNoteSate:
 		return []key.Binding{
-			b("Ctrl+s", "Save Note"),
-			b("q", "Quit Editing"),
+			b("Ctrl + s", "Save Note"),
+			b("Ctrl + q", "Quit Editing"),
 		}
 	case model.InitServerState:
 		return []key.Binding{
-			b("q", "Close Window"),
+			b("Ctrl + q", "Close Window"),
 		}
 	case model.FullSearchNoteState:
 		return []key.Binding{
-			b("q", "Close Window"),
-			b("Alt + ←", "Read Notes"),
+			b("Ctrl + q", "Close Window"),
+			b("Ctrl + r", "Read Notes"),
+			b("Alt + ←", "Insert Note"),
 		}
 	}
 	return []key.Binding{}
@@ -483,6 +488,8 @@ func UpdateSearchNotes(msg tea.Msg, m *model.Model) (model.Model, tea.Cmd) {
 			if m.FullSearchTimerCancel != nil {
 				close(m.FullSearchTimerCancel)
 			}
+			m.State = model.ReadNotesState
+		case key.Matches(msg, m.Keys.Read):
 			m.State = model.ReadNotesState
 		default:
 			m.FullSearchBool = false
