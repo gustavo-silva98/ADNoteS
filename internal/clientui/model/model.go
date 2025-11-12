@@ -52,6 +52,7 @@ type Model struct {
 	FullSearchBool        bool
 	FullSearchQuery       string
 	FullSearchTimerCancel chan struct{}
+	LogPath               string
 }
 
 func NewTextAreaEdit() textarea.Model {
@@ -123,7 +124,7 @@ func New() Model {
 	textareaSearch := NewTextAreaSearch()
 	firstIndex, err := sql.GetFirsIndexPage(ctx)
 	if err != nil {
-		file.WriteTxt("GET INDEX ERROR: " + err.Error())
+		file.WriteLog("GET INDEX ERROR: "+err.Error(), dbPath)
 	}
 	return Model{
 		State:           InsertNoteState,
@@ -137,5 +138,6 @@ func New() Model {
 		TextareaEdit:    textEdit,
 		TextAreaSearch:  textareaSearch,
 		FullSearchQuery: "",
+		LogPath:         dbPath,
 	}
 }
